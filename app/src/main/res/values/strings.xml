@@ -1,0 +1,17 @@
+<resources>
+    <string name="app_name">NetCheck</string>
+    <string name="notification_channel_name">Wi-Fi Internet Monitor</string>
+    <string name="notification_channel_desc">Shows ongoing Wi-Fi internet monitoring status and alarms</string>
+    <string name="alarm_notification_channel_name">NetCheck Alarm Alerts</string>
+    <string name="alarm_notification_channel_desc">Critical alerts when Wi-Fi internet connection is lost</string>
+
+    <string name="status_idle">Monitoring is OFF</string>
+    <string name="status_monitoring_healthy">Wi-Fi Connected &amp; Online</string>
+    <string name="status_probing">Verifying Wi-Fi Internet…</string>
+    <string name="status_alarm">ALARM: No Wi-Fi Internet!</string>
+    <string name="status_muted">Alarm Muted (Still No Internet)</string>
+
+    <string name="btn_start">Start Monitoring</string>
+    <string name="btn_stop">Stop Monitoring</string>
+    <string name="btn_mute">Mute Alarm</string>
+</resources>
