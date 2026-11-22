@@ -108,7 +108,7 @@ class NetworkProber(private val context: Context) {
         try {
             // Strictly bind connection to the Wi-Fi Network object
             // This prevents Android from falling back to Cellular/5G
-            val probeUrl = URL("http://connectivitycheck.gstatic.com/generate_204")
+            val probeUrl = URL("https://connectivitycheck.gstatic.com/generate_204")
             urlConnection = wifiNetwork.openConnection(probeUrl) as HttpURLConnection
 
             urlConnection.apply {
@@ -124,9 +124,8 @@ class NetworkProber(private val context: Context) {
             val responseCode = urlConnection.responseCode
             val elapsed = SystemClock.elapsedRealtime() - startTime
 
-            // HTTP 204 No Content is Google's captive portal check success response
-            // We also accept standard 200 OK if an endpoint returns it
-            if (responseCode == 204 || responseCode in 200..299) {
+            // HTTP 204 No Content is Google's connectivity check success response
+            if (responseCode == HttpURLConnection.HTTP_NO_CONTENT) {
                 ProbeResult(
                     success = true,
                     latencyMs = elapsed,

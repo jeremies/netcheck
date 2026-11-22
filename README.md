@@ -10,7 +10,7 @@ Android devices by default quickly switch or route traffic over cellular data (5
 
 **NetCheck solves this problem by strictly binding socket connections to the physical Wi-Fi interface:**
 1. **Network Callback Binding**: Registers with Android's `ConnectivityManager` requesting `NetworkCapabilities.TRANSPORT_WIFI`.
-2. **Wi-Fi-Only Probe**: Invokes `network.openConnection(URL("http://connectivitycheck.gstatic.com/generate_204"))`. This forces the HTTP request to route exclusively over Wi-Fi. Mobile data (5G) is completely bypassed.
+2. **Wi-Fi-Only Probe**: Invokes `network.openConnection(URL("https://connectivitycheck.gstatic.com/generate_204"))`. This forces the HTTPS request to route exclusively over Wi-Fi. Mobile data (5G) is completely bypassed.
 3. **Continuous Background Monitoring**: Operates inside an Android **Foreground Service** with a persistent notification and partial `WakeLock`, guaranteeing continuous 5-second checks even when your phone is locked or screen is off.
 4. **Jitter-Filtering & Alarm Trigger**:
    - Probes every **5 seconds**.
