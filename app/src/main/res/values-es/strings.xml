@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="notification_channel_name">Monitor de internet Wi-Fi</string>
+    <string name="notification_channel_desc">Muestra el estado continuo de la monitorización Wi-Fi y las alarmas</string>
+    <string name="alarm_notification_channel_name">Alertas de alarma de NetCheck</string>
+    <string name="alarm_notification_channel_desc">Alertas críticas cuando se pierde la conexión a internet por Wi-Fi</string>
+
+    <string name="title_online_devices">Dispositivos en línea</string>
+    <string name="cd_refresh_devices">Actualizar dispositivos</string>
+    <string name="cd_settings">Ajustes</string>
+    <string name="tab_monitor">Monitor</string>
+    <string name="tab_devices">Dispositivos</string>
+    <string name="error_load_devices">Error al cargar los dispositivos</string>
+    <string name="error_remove_device">Error al eliminar el dispositivo</string>
+
+    <string name="monitor_subtitle">Alarma de corte Wi-Fi (sin respaldo 5G)</string>
+    <string name="cd_mute">Silenciar</string>
+    <string name="btn_mute_alarm">SILENCIAR ALARMA</string>
+    <string name="btn_start_monitoring">INICIAR MONITORIZACIÓN</string>
+    <string name="btn_stop_monitoring">DETENER MONITORIZACIÓN</string>
+
+    <string name="cloud_sync_not_configured">Sincronización en la nube no configurada · Pulsa para configurar</string>
+    <string name="cloud_broadcast_disabled">Envío a la nube desactivado</string>
+    <string name="cloud_sync_error">Error de sincronización: %1$s</string>
+    <string name="cloud_broadcasting_synced">Enviando como %1$s · sincronizado %2$s</string>
+    <string name="cloud_waiting_heartbeat">Esperando señal de estado por Wi-Fi…</string>
+    <string name="cloud_will_broadcast">Se enviará como %1$s al iniciar la monitorización</string>
+
+    <string name="status_stopped_title">Servicio detenido</string>
+    <string name="status_stopped_desc">Pulsa Iniciar monitorización para empezar a comprobar el internet por Wi-Fi.</string>
+    <string name="status_checking_title">Comprobando Wi-Fi…</string>
+    <string name="status_checking_desc">Probando la conexión mediante la comprobación de Google solo por Wi-Fi.</string>
+    <string name="status_online_title">Wi-Fi en línea</string>
+    <string name="status_online_desc">Conectado a %1$s con acceso activo a internet.</string>
+    <string name="status_alarm_title">ALARMA: ¡SIN INTERNET!</string>
+    <string name="status_alarm_desc_disconnected">¡El dispositivo está desconectado del Wi-Fi!</string>
+    <string name="status_alarm_desc_no_internet">Conectado al Wi-Fi (%1$s), ¡pero sin acceso a internet!</string>
+    <string name="fallback_wifi_name">Wi-Fi</string>
+    <string name="fallback_network_name">red</string>
+    <string name="status_muted_title">Alarma silenciada</string>
+    <string name="status_muted_desc">Alarma silenciada para este corte. Se reactivará en cuanto vuelva la conexión.</string>
+
+    <string name="metric_wifi_network">Red Wi-Fi</string>
+    <string name="metric_wifi_active">Activa</string>
+    <string name="metric_wifi_disconnected">Desconectado</string>
+    <string name="metric_latency">Latencia</string>
+    <string name="metric_latency_value">%1$d ms</string>
+    <string name="metric_failures">Fallos</string>
+    <string name="metric_last_probe">Última comprobación: %1$s</string>
+
+    <string name="devices_empty_title">Aún no hay dispositivos en este grupo</string>
+    <string name="devices_empty_desc">Inicia la monitorización en este u otro móvil con el mismo código de grupo para ver aquí el estado en tiempo real.</string>
+    <string name="dialog_remove_device_title">¿Eliminar dispositivo?</string>
+    <string name="dialog_remove_device_message">¿Eliminar \"%1$s\" de la lista de este grupo? Si sigue monitorizando, volverá a aparecer con su próxima señal de estado.</string>
+    <string name="action_remove">Eliminar</string>
+    <string name="action_cancel">Cancelar</string>
+    <string name="devices_unconfigured_title">Configurar sincronización con Cloudflare</string>
+    <string name="devices_unconfigured_desc">Introduce la URL de tu Worker de Cloudflare y un código de grupo compartido (mínimo %1$d caracteres) en Ajustes para enviar y ver los dispositivos en línea.</string>
+    <string name="btn_open_settings">Abrir ajustes</string>
+    <string name="devices_summary_counts">%1$d en línea · %2$d sin conexión</string>
+    <string name="devices_summary_updated">Actualizado %1$s · actualización automática cada 10 s</string>
+    <string name="devices_summary_auto_refresh">Actualización automática cada 10 s</string>
+    <string name="device_status_online">En línea</string>
+    <string name="device_status_offline">Sin conexión</string>
+    <string name="device_badge_this_device">Este dispositivo</string>
+    <string name="cd_remove_device">Eliminar dispositivo</string>
+    <string name="device_last_seen">Visto por última vez: %1$s</string>
+    <string name="relative_time_just_now">Ahora mismo</string>
+    <string name="relative_time_seconds_ago">Hace %1$d s</string>
+    <string name="relative_time_minutes_ago">Hace %1$d min</string>
+    <string name="relative_time_hours_ago">Hace %1$d h</string>
+    <string name="relative_time_days_ago">Hace %1$d d</string>
+
+    <string name="settings_title">Ajustes de Cloudflare</string>
+    <string name="cd_back">Volver</string>
+    <string name="settings_broadcast_title">Compartir estado en línea</string>
+    <string name="settings_broadcast_desc">Envía señales de estado solo por Wi-Fi cada 15 s mientras la monitorización está activa.</string>
+    <string name="settings_server_url_label">URL del Worker de Cloudflare</string>
+    <string name="settings_server_url_placeholder">https://netcheck-server.&lt;subdominio&gt;.workers.dev</string>
+    <string name="btn_test_connection">Probar conexión</string>
+    <string name="settings_test_connected">Conectado (%1$d ms)</string>
+    <string name="settings_test_failed">Error de conexión</string>
+    <string name="settings_group_code_label">Código de grupo compartido</string>
+    <string name="settings_group_code_placeholder">Al menos %1$d caracteres</string>
+    <string name="cd_hide_code">Ocultar código</string>
+    <string name="cd_show_code">Mostrar código</string>
+    <string name="settings_group_code_error">El código de grupo debe tener al menos %1$d caracteres</string>
+    <string name="settings_group_code_helper">Usa el mismo código secreto en cada dispositivo que quieras ver en el mismo grupo.</string>
+    <string name="btn_generate_code">Generar código</string>
+    <string name="btn_copied">Copiado</string>
+    <string name="btn_copy">Copiar</string>
+    <string name="settings_device_name_label">Nombre del dispositivo</string>
+    <string name="settings_device_id">ID del dispositivo: %1$s</string>
+    <string name="btn_save_settings">Guardar ajustes</string>
+
+    <string name="notif_alarm_title">⚠️ ¡SIN INTERNET WI-FI!</string>
+    <string name="notif_alarm_text_disconnected">¡El Wi-Fi está desconectado!</string>
+    <string name="notif_alarm_text_no_internet">Conectado a %1$s, ¡pero sin conexión a internet!</string>
+    <string name="notif_action_mute_alarm">Silenciar alarma</string>
+    <string name="notif_muted_title">⚠️ Alarma silenciada (Sin conexión)</string>
+    <string name="notif_muted_text">El Wi-Fi no tiene internet. Esperando reconexión…</string>
+    <string name="notif_online_title">Wi-Fi en línea</string>
+    <string name="notif_online_text">Monitorizando %1$s (%2$d ms)</string>
+    <string name="notif_checking_title">Comprobando Wi-Fi…</string>
+    <string name="notif_checking_text">Verificando la conectividad a internet</string>
+    <string name="notif_stopped_title">NetCheck inactivo</string>
+    <string name="notif_stopped_text">La monitorización está detenida</string>
+    <string name="notif_action_stop">Detener</string>
+
+    <string name="error_sync_failed">Error de sincronización</string>
+    <string name="error_server_url_not_configured">La URL del servidor no está configurada</string>
+    <string name="error_enter_server_url">Introduce una URL de servidor</string>
+    <string name="error_unexpected_health_response">Respuesta inesperada del estado del servidor</string>
+    <string name="fallback_unknown_device">Dispositivo desconocido</string>
+    <string name="default_device_name">Dispositivo Android</string>
+    <string name="error_wifi_disconnected">El Wi-Fi está desconectado o desactivado</string>
+    <string name="error_probe_http_status">HTTP %1$d desde el servidor de comprobación</string>
+    <string name="error_probe_connection_timeout">Error de conexión o tiempo de espera agotado</string>
+    <string name="error_unknown">Error desconocido</string>
+</resources>

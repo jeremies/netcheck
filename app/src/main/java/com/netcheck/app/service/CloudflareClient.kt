@@ -1,7 +1,9 @@
 package com.netcheck.app.service
 
+import android.content.Context
 import android.net.Network
 import android.os.SystemClock
+import com.netcheck.app.R
 import com.netcheck.app.model.CloudSettings
 import com.netcheck.app.model.DeviceListResult
 import com.netcheck.app.model.HeartbeatPayload
@@ -15,7 +17,9 @@ import java.net.HttpURLConnection
 import java.net.URL
 import java.net.URLEncoder
 
-class CloudflareClient {
+class CloudflareClient(context: Context) {
+
+    private val appContext = context.applicationContext
 
     suspend fun sendHeartbeat(
         wifiNetwork: Network,
@@ -24,9 +28,14 @@ class CloudflareClient {
     ): Result<Long> = withContext(Dispatchers.IO) {
         runCatching {
             val baseUrl = settings.normalizedServerUrl
-            require(baseUrl.isNotBlank()) { "Server URL is not configured" }
+            require(baseUrl.isNotBlank()) {
+                appContext.getString(R.string.error_server_url_not_configured)
+            }
             require(settings.trimmedGroupCode.length >= CloudSettings.MIN_GROUP_CODE_LENGTH) {
-                "Group code must be at least ${CloudSettings.MIN_GROUP_CODE_LENGTH} characters"
+                appContext.getString(
+                    R.string.settings_group_code_error,
+                    CloudSettings.MIN_GROUP_CODE_LENGTH
+                )
             }
 
             val body = JSONObject().apply {
@@ -118,9 +127,14 @@ class CloudflareClient {
         withContext(Dispatchers.IO) {
             runCatching {
                 val baseUrl = settings.normalizedServerUrl
-                require(baseUrl.isNotBlank()) { "Server URL is not configured" }
+                require(baseUrl.isNotBlank()) {
+                    appContext.getString(R.string.error_server_url_not_configured)
+                }
                 require(settings.trimmedGroupCode.length >= CloudSettings.MIN_GROUP_CODE_LENGTH) {
-                    "Group code must be at least ${CloudSettings.MIN_GROUP_CODE_LENGTH} characters"
+                    appContext.getString(
+                        R.string.settings_group_code_error,
+                        CloudSettings.MIN_GROUP_CODE_LENGTH
+                    )
                 }
 
                 val url = URL("$baseUrl/api/devices")
@@ -152,9 +166,14 @@ class CloudflareClient {
         withContext(Dispatchers.IO) {
             runCatching {
                 val baseUrl = settings.normalizedServerUrl
-                require(baseUrl.isNotBlank()) { "Server URL is not configured" }
+                require(baseUrl.isNotBlank()) {
+                    appContext.getString(R.string.error_server_url_not_configured)
+                }
                 require(settings.trimmedGroupCode.length >= CloudSettings.MIN_GROUP_CODE_LENGTH) {
-                    "Group code must be at least ${CloudSettings.MIN_GROUP_CODE_LENGTH} characters"
+                    appContext.getString(
+                        R.string.settings_group_code_error,
+                        CloudSettings.MIN_GROUP_CODE_LENGTH
+                    )
                 }
 
                 val encodedId = URLEncoder.encode(deviceId, "UTF-8").replace("+", "%20")
@@ -185,7 +204,9 @@ class CloudflareClient {
     suspend fun checkHealth(rawServerUrl: String): Result<Long> = withContext(Dispatchers.IO) {
         runCatching {
             val baseUrl = CloudSettings.normalizeUrl(rawServerUrl)
-            require(baseUrl.isNotBlank()) { "Please enter a server URL" }
+            require(baseUrl.isNotBlank()) {
+                appContext.getString(R.string.error_enter_server_url)
+            }
 
             val start = SystemClock.elapsedRealtime()
             val url = URL("$baseUrl/api/health")
@@ -208,7 +229,7 @@ class CloudflareClient {
                 }
                 val json = JSONObject(responseText)
                 if (!json.optBoolean("ok", false)) {
-                    throw IOException("Unexpected server health response")
+                    throw IOException(appContext.getString(R.string.error_unexpected_health_response))
                 }
                 elapsed
             } finally {
@@ -225,7 +246,8 @@ class CloudflareClient {
             for (i in 0 until array.length()) {
                 val obj = array.optJSONObject(i) ?: continue
                 val deviceId = obj.optNullableString("deviceId") ?: continue
-                val name = obj.optNullableString("name") ?: "Unknown Device"
+                val name = obj.optNullableString("name")
+                    ?: appContext.getString(R.string.fallback_unknown_device)
                 add(
                     RemoteDevice(
                         deviceId = deviceId,

@@ -10,6 +10,7 @@ import android.net.wifi.WifiManager
 import android.os.Build
 import android.os.SystemClock
 import android.util.Log
+import com.netcheck.app.R
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.IOException
@@ -98,7 +99,7 @@ class NetworkProber(private val context: Context) {
                 success = false,
                 isWifiConnected = false,
                 ssid = null,
-                errorMessage = "Wi-Fi is disconnected or disabled"
+                errorMessage = context.getString(R.string.error_wifi_disconnected)
             )
         }
 
@@ -138,7 +139,7 @@ class NetworkProber(private val context: Context) {
                     latencyMs = elapsed,
                     ssid = currentSsid,
                     isWifiConnected = true,
-                    errorMessage = "HTTP $responseCode from check endpoint"
+                    errorMessage = context.getString(R.string.error_probe_http_status, responseCode)
                 )
             }
         } catch (e: IOException) {
@@ -149,7 +150,7 @@ class NetworkProber(private val context: Context) {
                 latencyMs = elapsed,
                 ssid = currentSsid,
                 isWifiConnected = true,
-                errorMessage = e.message ?: "Connection error / timeout"
+                errorMessage = e.message ?: context.getString(R.string.error_probe_connection_timeout)
             )
         } catch (e: Exception) {
             Log.e(tag, "Unexpected probe error", e)
@@ -157,7 +158,7 @@ class NetworkProber(private val context: Context) {
                 success = false,
                 ssid = currentSsid,
                 isWifiConnected = true,
-                errorMessage = e.message ?: "Unknown error"
+                errorMessage = e.message ?: context.getString(R.string.error_unknown)
             )
         } finally {
             urlConnection?.disconnect()

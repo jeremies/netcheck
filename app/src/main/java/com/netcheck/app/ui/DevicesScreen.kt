@@ -48,10 +48,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.netcheck.app.R
 import com.netcheck.app.model.CloudSettings
 import com.netcheck.app.model.RemoteDevice
 import com.netcheck.app.ui.theme.StatusAlarm
@@ -162,14 +164,14 @@ fun DevicesScreen(
                     )
                     Spacer(modifier = Modifier.height(12.dp))
                     Text(
-                        text = "No devices in this group yet",
+                        text = stringResource(R.string.devices_empty_title),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.SemiBold,
                         textAlign = TextAlign.Center
                     )
                     Spacer(modifier = Modifier.height(6.dp))
                     Text(
-                        text = "Start monitoring on this or another phone using the same Group Code to see live device status here.",
+                        text = stringResource(R.string.devices_empty_desc),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         textAlign = TextAlign.Center
@@ -200,9 +202,9 @@ fun DevicesScreen(
     deviceToDelete?.let { target ->
         AlertDialog(
             onDismissRequest = { deviceToDelete = null },
-            title = { Text("Remove device?") },
+            title = { Text(stringResource(R.string.dialog_remove_device_title)) },
             text = {
-                Text("Remove \"${target.name}\" from this group list? If it is still monitoring, it will reappear on its next heartbeat.")
+                Text(stringResource(R.string.dialog_remove_device_message, target.name))
             },
             confirmButton = {
                 TextButton(
@@ -211,12 +213,12 @@ fun DevicesScreen(
                         deviceToDelete = null
                     }
                 ) {
-                    Text("Remove", color = StatusAlarm)
+                    Text(stringResource(R.string.action_remove), color = StatusAlarm)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { deviceToDelete = null }) {
-                    Text("Cancel")
+                    Text(stringResource(R.string.action_cancel))
                 }
             }
         )
@@ -243,14 +245,17 @@ private fun UnconfiguredDevicesState(
             )
             Spacer(modifier = Modifier.height(16.dp))
             Text(
-                text = "Set Up Cloudflare Sync",
+                text = stringResource(R.string.devices_unconfigured_title),
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold,
                 textAlign = TextAlign.Center
             )
             Spacer(modifier = Modifier.height(8.dp))
             Text(
-                text = "Enter your Cloudflare Worker URL and a shared Group Code (at least 6 characters) in Settings to broadcast and view online devices.",
+                text = stringResource(
+                    R.string.devices_unconfigured_desc,
+                    CloudSettings.MIN_GROUP_CODE_LENGTH
+                ),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center
@@ -260,7 +265,7 @@ private fun UnconfiguredDevicesState(
                 onClick = onOpenSettings,
                 shape = RoundedCornerShape(14.dp)
             ) {
-                Text("Open Settings")
+                Text(stringResource(R.string.btn_open_settings))
             }
         }
     }
@@ -283,19 +288,26 @@ private fun DevicesSummaryBar(state: DevicesUiState) {
         ) {
             Column {
                 Text(
-                    text = "${state.onlineCount} online · ${state.offlineCount} offline",
+                    text = stringResource(
+                        R.string.devices_summary_counts,
+                        state.onlineCount,
+                        state.offlineCount
+                    ),
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.Bold
                 )
                 if (state.lastUpdatedMs > 0L) {
                     Text(
-                        text = "Updated ${timeFormat.format(Date(state.lastUpdatedMs))} · auto-refreshes every 10s",
+                        text = stringResource(
+                            R.string.devices_summary_updated,
+                            timeFormat.format(Date(state.lastUpdatedMs))
+                        ),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 } else {
                     Text(
-                        text = "Auto-refreshes every 10s",
+                        text = stringResource(R.string.devices_summary_auto_refresh),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -321,7 +333,9 @@ private fun DeviceCard(
 ) {
     val statusColor = if (device.isOnline) StatusOnline else StatusIdle
     val statusBgColor = if (device.isOnline) StatusOnlineBg else StatusIdleBg
-    val statusLabel = if (device.isOnline) "Online" else "Offline"
+    val statusLabel = stringResource(
+        if (device.isOnline) R.string.device_status_online else R.string.device_status_offline
+    )
 
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -346,32 +360,38 @@ private fun DeviceCard(
                         .background(statusColor)
                 )
                 Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    text = device.name,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f, fill = false)
-                )
+                Row(
+                    modifier = Modifier.weight(1f),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = device.name,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f, fill = false)
+                    )
 
-                if (isSelf) {
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Surface(
-                        shape = RoundedCornerShape(8.dp),
-                        color = MaterialTheme.colorScheme.primaryContainer
-                    ) {
-                        Text(
-                            text = "This device",
-                            style = MaterialTheme.typography.labelSmall,
-                            fontWeight = FontWeight.SemiBold,
-                            color = MaterialTheme.colorScheme.onPrimaryContainer,
-                            modifier = Modifier.padding(horizontal = 7.dp, vertical = 2.dp)
-                        )
+                    if (isSelf) {
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = MaterialTheme.colorScheme.primaryContainer
+                        ) {
+                            Text(
+                                text = stringResource(R.string.device_badge_this_device),
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.SemiBold,
+                                color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                maxLines = 1,
+                                modifier = Modifier.padding(horizontal = 7.dp, vertical = 2.dp)
+                            )
+                        }
                     }
                 }
 
-                Spacer(modifier = Modifier.weight(1f))
+                Spacer(modifier = Modifier.width(8.dp))
 
                 Surface(
                     shape = RoundedCornerShape(10.dp),
@@ -382,6 +402,7 @@ private fun DeviceCard(
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.Bold,
                         color = statusColor,
+                        maxLines = 1,
                         modifier = Modifier.padding(horizontal = 9.dp, vertical = 4.dp)
                     )
                 }
@@ -392,7 +413,7 @@ private fun DeviceCard(
                 ) {
                     Icon(
                         imageVector = Icons.Filled.Delete,
-                        contentDescription = "Remove device",
+                        contentDescription = stringResource(R.string.cd_remove_device),
                         tint = MaterialTheme.colorScheme.outline,
                         modifier = Modifier.size(18.dp)
                     )
@@ -402,7 +423,10 @@ private fun DeviceCard(
             Spacer(modifier = Modifier.height(4.dp))
 
             Text(
-                text = "Last seen: ${formatRelativeLastSeen(serverTimeMs, device.lastSeenMs)}",
+                text = stringResource(
+                    R.string.device_last_seen,
+                    formatRelativeLastSeen(serverTimeMs, device.lastSeenMs)
+                ),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -426,7 +450,7 @@ private fun DeviceCard(
                     device.latencyMs?.let { latency ->
                         TelemetryBadge(
                             icon = Icons.Filled.Speed,
-                            text = "${latency}ms"
+                            text = stringResource(R.string.metric_latency_value, latency)
                         )
                     }
                     device.batteryPct?.let { batteryPct ->
@@ -468,15 +492,16 @@ private fun TelemetryBadge(
     }
 }
 
+@Composable
 private fun formatRelativeLastSeen(serverTimeMs: Long, lastSeenMs: Long): String {
     val referenceNow = if (serverTimeMs > 0L) serverTimeMs else System.currentTimeMillis()
     val deltaMs = (referenceNow - lastSeenMs).coerceAtLeast(0L)
     val seconds = deltaMs / 1000L
     return when {
-        seconds < 10L -> "Just now"
-        seconds < 60L -> "${seconds}s ago"
-        seconds < 3600L -> "${seconds / 60L}m ago"
-        seconds < 86_400L -> "${seconds / 3600L}h ago"
-        else -> "${seconds / 86_400L}d ago"
+        seconds < 10L -> stringResource(R.string.relative_time_just_now)
+        seconds < 60L -> stringResource(R.string.relative_time_seconds_ago, seconds)
+        seconds < 3600L -> stringResource(R.string.relative_time_minutes_ago, seconds / 60L)
+        seconds < 86_400L -> stringResource(R.string.relative_time_hours_ago, seconds / 3600L)
+        else -> stringResource(R.string.relative_time_days_ago, seconds / 86_400L)
     }
 }

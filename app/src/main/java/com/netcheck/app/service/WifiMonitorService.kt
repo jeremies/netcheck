@@ -8,6 +8,7 @@ import android.app.Service
 import android.content.Context
 import android.content.Intent
 import android.content.pm.ServiceInfo
+import android.content.res.Configuration
 import android.os.Build
 import android.os.IBinder
 import android.os.PowerManager
@@ -102,7 +103,7 @@ class WifiMonitorService : Service() {
         prober = NetworkProber(applicationContext)
         alarmController = AlarmController(applicationContext)
         settingsRepository = SettingsRepository.getInstance(applicationContext)
-        cloudflareClient = CloudflareClient()
+        cloudflareClient = CloudflareClient(applicationContext)
 
         val powerManager = getSystemService(Context.POWER_SERVICE) as PowerManager
         wakeLock = powerManager.newWakeLock(
@@ -128,6 +129,7 @@ class WifiMonitorService : Service() {
         stopJob?.cancel()
         stopJob = null
         wakeLock?.acquire(24 * 60 * 60 * 1000L) // 24h safety limit
+        createNotificationChannel()
 
         val currentSettings = settingsRepository.settings.value
         val initialInfo = WifiProbeInfo(
@@ -260,7 +262,7 @@ class WifiMonitorService : Service() {
                                     onFailure = { err ->
                                         // Server/sync errors must never trigger the Wi-Fi loss alarm
                                         Log.w(tag, "Cloud heartbeat failed: ${err.message}")
-                                        lastSyncError = err.message ?: "Sync failed"
+                                        lastSyncError = err.message ?: getString(R.string.error_sync_failed)
                                     }
                                 )
                             }
@@ -354,11 +356,15 @@ class WifiMonitorService : Service() {
 
         when (info.status) {
             MonitoringStatus.ALARMING -> {
+                val wifiName = info.wifiSsid ?: getString(R.string.fallback_wifi_name)
                 builder.setSmallIcon(R.drawable.ic_warning)
-                    .setContentTitle("⚠️ NO WI-FI INTERNET!")
+                    .setContentTitle(getString(R.string.notif_alarm_title))
                     .setContentText(
-                        if (!info.isWifiConnected) "Wi-Fi is disconnected!"
-                        else "Connected to ${info.wifiSsid ?: "Wi-Fi"}, but no internet connection!"
+                        if (!info.isWifiConnected) {
+                            getString(R.string.notif_alarm_text_disconnected)
+                        } else {
+                            getString(R.string.notif_alarm_text_no_internet, wifiName)
+                        }
                     )
                     .setColor(0xFFE53935.toInt())
 
@@ -371,36 +377,56 @@ class WifiMonitorService : Service() {
                     muteIntent,
                     PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
                 )
-                builder.addAction(R.drawable.ic_volume_off, "Mute Alarm", mutePendingIntent)
+                builder.addAction(
+                    R.drawable.ic_volume_off,
+                    getString(R.string.notif_action_mute_alarm),
+                    mutePendingIntent
+                )
             }
             MonitoringStatus.MUTED -> {
                 builder.setSmallIcon(R.drawable.ic_warning)
-                    .setContentTitle("⚠️ Alarm Muted (Offline)")
-                    .setContentText("Wi-Fi has no internet. Waiting for reconnection…")
+                    .setContentTitle(getString(R.string.notif_muted_title))
+                    .setContentText(getString(R.string.notif_muted_text))
                     .setColor(0xFFF57C00.toInt())
             }
             MonitoringStatus.CONNECTED_ONLINE -> {
+                val wifiName = info.wifiSsid ?: getString(R.string.fallback_wifi_name)
                 builder.setSmallIcon(R.drawable.ic_wifi_check)
-                    .setContentTitle("Wi-Fi Online")
-                    .setContentText("Monitoring ${info.wifiSsid ?: "Wi-Fi"} (${info.latencyMs ?: 0}ms)")
+                    .setContentTitle(getString(R.string.notif_online_title))
+                    .setContentText(
+                        getString(R.string.notif_online_text, wifiName, info.latencyMs ?: 0L)
+                    )
                     .setColor(0xFF4CAF50.toInt())
             }
             MonitoringStatus.CHECKING -> {
                 builder.setSmallIcon(R.drawable.ic_wifi_check)
-                    .setContentTitle("Checking Wi-Fi…")
-                    .setContentText("Verifying internet connectivity")
+                    .setContentTitle(getString(R.string.notif_checking_title))
+                    .setContentText(getString(R.string.notif_checking_text))
                     .setColor(0xFF2196F3.toInt())
             }
             MonitoringStatus.STOPPED -> {
                 builder.setSmallIcon(R.drawable.ic_wifi_check)
-                    .setContentTitle("NetCheck Idle")
-                    .setContentText("Monitoring is stopped")
+                    .setContentTitle(getString(R.string.notif_stopped_title))
+                    .setContentText(getString(R.string.notif_stopped_text))
             }
         }
 
-        builder.addAction(android.R.drawable.ic_menu_close_clear_cancel, "Stop", stopPendingIntent)
+        builder.addAction(
+            android.R.drawable.ic_menu_close_clear_cancel,
+            getString(R.string.notif_action_stop),
+            stopPendingIntent
+        )
 
         return builder.build()
+    }
+
+    override fun onConfigurationChanged(newConfig: Configuration) {
+        super.onConfigurationChanged(newConfig)
+        createNotificationChannel()
+        val currentInfo = _probeState.value
+        if (currentInfo.status != MonitoringStatus.STOPPED) {
+            notificationManager.notify(NOTIFICATION_ID, buildNotification(currentInfo))
+        }
     }
 
     private fun createNotificationChannel() {

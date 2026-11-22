@@ -46,12 +46,15 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
+import com.netcheck.app.R
 import com.netcheck.app.data.SettingsRepository
 import com.netcheck.app.model.CloudSettings
 import com.netcheck.app.service.CloudflareClient
@@ -85,6 +88,7 @@ fun SettingsScreen(
     var testSucceeded by remember { mutableStateOf<Boolean?>(null) }
     var copiedNotice by remember { mutableStateOf(false) }
 
+    val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
     val clipboardManager = LocalClipboardManager.current
 
@@ -94,12 +98,12 @@ fun SettingsScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Cloudflare Settings") },
+                title = { Text(stringResource(R.string.settings_title)) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back"
+                            contentDescription = stringResource(R.string.cd_back)
                         )
                     }
                 }
@@ -130,13 +134,13 @@ fun SettingsScreen(
                 ) {
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = "Broadcast Online Status",
+                            text = stringResource(R.string.settings_broadcast_title),
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.SemiBold
                         )
                         Spacer(modifier = Modifier.height(2.dp))
                         Text(
-                            text = "Sends Wi-Fi-only heartbeats every 15s while monitoring is active.",
+                            text = stringResource(R.string.settings_broadcast_desc),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -157,8 +161,8 @@ fun SettingsScreen(
                         testMessage = null
                         testSucceeded = null
                     },
-                    label = { Text("Cloudflare Worker URL") },
-                    placeholder = { Text("https://netcheck-server.<subdomain>.workers.dev") },
+                    label = { Text(stringResource(R.string.settings_server_url_label)) },
+                    placeholder = { Text(stringResource(R.string.settings_server_url_placeholder)) },
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri),
                     modifier = Modifier.fillMaxWidth()
@@ -180,11 +184,11 @@ fun SettingsScreen(
                                 result.fold(
                                     onSuccess = { ms ->
                                         testSucceeded = true
-                                        testMessage = "Connected (${ms}ms)"
+                                        testMessage = context.getString(R.string.settings_test_connected, ms)
                                     },
                                     onFailure = { err ->
                                         testSucceeded = false
-                                        testMessage = err.message ?: "Connection failed"
+                                        testMessage = err.message ?: context.getString(R.string.settings_test_failed)
                                     }
                                 )
                             }
@@ -197,7 +201,7 @@ fun SettingsScreen(
                             )
                             Spacer(modifier = Modifier.width(8.dp))
                         }
-                        Text("Test Connection")
+                        Text(stringResource(R.string.btn_test_connection))
                     }
 
                     testMessage?.let { msg ->
@@ -231,8 +235,15 @@ fun SettingsScreen(
                         groupCode = it
                         copiedNotice = false
                     },
-                    label = { Text("Shared Group Code") },
-                    placeholder = { Text("At least 6 characters") },
+                    label = { Text(stringResource(R.string.settings_group_code_label)) },
+                    placeholder = {
+                        Text(
+                            stringResource(
+                                R.string.settings_group_code_placeholder,
+                                CloudSettings.MIN_GROUP_CODE_LENGTH
+                            )
+                        )
+                    },
                     singleLine = true,
                     isError = !isGroupCodeValid,
                     visualTransformation = if (showGroupCode) {
@@ -248,16 +259,21 @@ fun SettingsScreen(
                                 } else {
                                     Icons.Filled.Visibility
                                 },
-                                contentDescription = if (showGroupCode) "Hide code" else "Show code"
+                                contentDescription = stringResource(
+                                    if (showGroupCode) R.string.cd_hide_code else R.string.cd_show_code
+                                )
                             )
                         }
                     },
                     supportingText = {
                         Text(
                             if (!isGroupCodeValid) {
-                                "Group code must be at least ${CloudSettings.MIN_GROUP_CODE_LENGTH} characters"
+                                stringResource(
+                                    R.string.settings_group_code_error,
+                                    CloudSettings.MIN_GROUP_CODE_LENGTH
+                                )
                             } else {
-                                "Use the same secret code on every device you want to see together."
+                                stringResource(R.string.settings_group_code_helper)
                             }
                         )
                     },
@@ -281,7 +297,7 @@ fun SettingsScreen(
                             modifier = Modifier.size(16.dp)
                         )
                         Spacer(modifier = Modifier.width(6.dp))
-                        Text("Generate Code")
+                        Text(stringResource(R.string.btn_generate_code))
                     }
 
                     OutlinedButton(
@@ -297,7 +313,7 @@ fun SettingsScreen(
                             modifier = Modifier.size(16.dp)
                         )
                         Spacer(modifier = Modifier.width(6.dp))
-                        Text(if (copiedNotice) "Copied" else "Copy")
+                        Text(stringResource(if (copiedNotice) R.string.btn_copied else R.string.btn_copy))
                     }
                 }
             }
@@ -306,13 +322,13 @@ fun SettingsScreen(
                 OutlinedTextField(
                     value = deviceName,
                     onValueChange = { deviceName = it.take(64) },
-                    label = { Text("Device Name") },
-                    placeholder = { Text(SettingsRepository.defaultDeviceName()) },
+                    label = { Text(stringResource(R.string.settings_device_name_label)) },
+                    placeholder = { Text(SettingsRepository.defaultDeviceName(context)) },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )
                 Text(
-                    text = "Device ID: ${initialSettings.deviceId}",
+                    text = stringResource(R.string.settings_device_id, initialSettings.deviceId),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.outline
                 )
@@ -331,7 +347,7 @@ fun SettingsScreen(
                 shape = RoundedCornerShape(16.dp)
             ) {
                 Text(
-                    text = "Save Settings",
+                    text = stringResource(R.string.btn_save_settings),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold
                 )

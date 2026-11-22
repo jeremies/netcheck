@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.SharedPreferences
 import android.os.Build
 import com.netcheck.app.BuildConfig
+import com.netcheck.app.R
 import com.netcheck.app.model.CloudSettings
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -14,8 +15,10 @@ import java.util.UUID
 
 class SettingsRepository private constructor(context: Context) {
 
+    private val appContext = context.applicationContext
+
     private val prefs: SharedPreferences =
-        context.applicationContext.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        appContext.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
 
     private val _settings: MutableStateFlow<CloudSettings>
 
@@ -45,7 +48,7 @@ class SettingsRepository private constructor(context: Context) {
         val groupCode = if (savedCode != null) savedCode else BuildConfig.DEFAULT_GROUP_CODE
 
         val savedName = prefs.getString(KEY_DEVICE_NAME, null)
-        val deviceName = if (!savedName.isNullOrBlank()) savedName else defaultDeviceName()
+        val deviceName = if (!savedName.isNullOrBlank()) savedName else defaultDeviceName(appContext)
 
         val broadcastEnabled = prefs.getBoolean(KEY_BROADCAST_ENABLED, true)
 
@@ -65,7 +68,7 @@ class SettingsRepository private constructor(context: Context) {
         deviceName: String,
         broadcastEnabled: Boolean
     ): CloudSettings {
-        val normalizedName = deviceName.trim().ifBlank { defaultDeviceName() }.take(64)
+        val normalizedName = deviceName.trim().ifBlank { defaultDeviceName(appContext) }.take(64)
         val trimmedUrl = serverUrl.trim()
         val trimmedCode = groupCode.trim()
         val deviceId = _settings.value.deviceId
@@ -108,10 +111,10 @@ class SettingsRepository private constructor(context: Context) {
             }
         }
 
-        fun defaultDeviceName(): String {
+        fun defaultDeviceName(context: Context): String {
             val manufacturer = Build.MANUFACTURER?.trim().orEmpty()
             val model = Build.MODEL?.trim().orEmpty()
-            if (model.isEmpty()) return "Android Device"
+            if (model.isEmpty()) return context.getString(R.string.default_device_name)
             if (manufacturer.isEmpty() ||
                 model.lowercase(Locale.US).startsWith(manufacturer.lowercase(Locale.US))
             ) {

@@ -36,6 +36,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.core.content.ContextCompat
 import com.netcheck.app.data.SettingsRepository
@@ -74,7 +75,7 @@ fun NetCheckApp() {
     val probeState by WifiMonitorService.probeState.collectAsState()
     val settingsRepository = remember { SettingsRepository.getInstance(context) }
     val settings by settingsRepository.settings.collectAsState()
-    val cloudflareClient = remember { CloudflareClient() }
+    val cloudflareClient = remember(context) { CloudflareClient(context) }
     val coroutineScope = rememberCoroutineScope()
 
     var selectedTab by remember { mutableStateOf(MainTab.MONITOR) }
@@ -105,7 +106,7 @@ fun NetCheckApp() {
                 onFailure = { error ->
                     devicesState = devicesState.copy(
                         isLoading = false,
-                        errorMessage = error.message ?: "Failed to load devices"
+                        errorMessage = error.message ?: context.getString(R.string.error_load_devices)
                     )
                 }
             )
@@ -127,7 +128,7 @@ fun NetCheckApp() {
                 },
                 onFailure = { error ->
                     devicesState = devicesState.copy(
-                        errorMessage = error.message ?: "Failed to remove device"
+                        errorMessage = error.message ?: context.getString(R.string.error_remove_device)
                     )
                 }
             )
@@ -191,7 +192,13 @@ fun NetCheckApp() {
             TopAppBar(
                 title = {
                     Text(
-                        text = if (selectedTab == MainTab.MONITOR) "NetCheck" else "Online Devices",
+                        text = stringResource(
+                            if (selectedTab == MainTab.MONITOR) {
+                                R.string.app_name
+                            } else {
+                                R.string.title_online_devices
+                            }
+                        ),
                         fontWeight = FontWeight.Black,
                         color = MaterialTheme.colorScheme.primary
                     )
@@ -201,14 +208,14 @@ fun NetCheckApp() {
                         IconButton(onClick = { refreshDevices() }) {
                             Icon(
                                 imageVector = Icons.Filled.Refresh,
-                                contentDescription = "Refresh devices"
+                                contentDescription = stringResource(R.string.cd_refresh_devices)
                             )
                         }
                     }
                     IconButton(onClick = { showSettings = true }) {
                         Icon(
                             imageVector = Icons.Filled.Settings,
-                            contentDescription = "Settings"
+                            contentDescription = stringResource(R.string.cd_settings)
                         )
                     }
                 }
@@ -222,10 +229,10 @@ fun NetCheckApp() {
                     icon = {
                         Icon(
                             imageVector = Icons.Filled.Wifi,
-                            contentDescription = "Monitor"
+                            contentDescription = stringResource(R.string.tab_monitor)
                         )
                     },
-                    label = { Text("Monitor") }
+                    label = { Text(stringResource(R.string.tab_monitor)) }
                 )
                 NavigationBarItem(
                     selected = selectedTab == MainTab.DEVICES,
@@ -242,11 +249,11 @@ fun NetCheckApp() {
                         ) {
                             Icon(
                                 imageVector = Icons.Filled.Devices,
-                                contentDescription = "Devices"
+                                contentDescription = stringResource(R.string.tab_devices)
                             )
                         }
                     },
-                    label = { Text("Devices") }
+                    label = { Text(stringResource(R.string.tab_devices)) }
                 )
             }
         }

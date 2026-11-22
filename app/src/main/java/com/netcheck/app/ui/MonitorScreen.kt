@@ -22,6 +22,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -56,11 +57,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.netcheck.app.R
 import com.netcheck.app.model.CloudSettings
 import com.netcheck.app.model.MonitoringStatus
 import com.netcheck.app.model.WifiProbeInfo
@@ -99,7 +102,7 @@ fun MonitorScreen(
         verticalArrangement = Arrangement.SpaceBetween
     ) {
         Text(
-            text = "Wi-Fi Loss Alarm (No 5G Fallback)",
+            text = stringResource(R.string.monitor_subtitle),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center
@@ -141,7 +144,7 @@ fun MonitorScreen(
                     onClick = onMuteAlarm,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(56.dp)
+                        .heightIn(min = 56.dp)
                         .padding(bottom = 12.dp),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = StatusAlarm,
@@ -149,12 +152,16 @@ fun MonitorScreen(
                     ),
                     shape = RoundedCornerShape(16.dp)
                 ) {
-                    Icon(Icons.AutoMirrored.Filled.VolumeOff, contentDescription = "Mute")
+                    Icon(
+                        Icons.AutoMirrored.Filled.VolumeOff,
+                        contentDescription = stringResource(R.string.cd_mute)
+                    )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = "MUTE ALARM",
+                        text = stringResource(R.string.btn_mute_alarm),
                         fontWeight = FontWeight.Bold,
-                        fontSize = 17.sp
+                        fontSize = 17.sp,
+                        textAlign = TextAlign.Center
                     )
                 }
             }
@@ -165,7 +172,7 @@ fun MonitorScreen(
                 },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(64.dp),
+                    .heightIn(min = 64.dp),
                 shape = RoundedCornerShape(20.dp),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = if (isMonitoring) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
@@ -178,9 +185,12 @@ fun MonitorScreen(
                 )
                 Spacer(modifier = Modifier.width(10.dp))
                 Text(
-                    text = if (isMonitoring) "STOP MONITORING" else "START MONITORING",
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Bold
+                    text = stringResource(
+                        if (isMonitoring) R.string.btn_stop_monitoring else R.string.btn_start_monitoring
+                    ),
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Bold,
+                    textAlign = TextAlign.Center
                 )
             }
         }
@@ -199,37 +209,41 @@ private fun CloudBroadcastChip(
     val (icon, text, tint, bgColor) = when {
         !settings.isConfigured -> Quadruple(
             Icons.Filled.CloudOff,
-            "Cloud sync not configured · Tap to set up",
+            stringResource(R.string.cloud_sync_not_configured),
             MaterialTheme.colorScheme.onSurfaceVariant,
             MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
         )
         !settings.broadcastEnabled -> Quadruple(
             Icons.Filled.CloudOff,
-            "Cloud broadcast disabled",
+            stringResource(R.string.cloud_broadcast_disabled),
             MaterialTheme.colorScheme.onSurfaceVariant,
             MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
         )
         isMonitoring && probeState.lastSyncError != null -> Quadruple(
             Icons.Filled.ErrorOutline,
-            "Sync error: ${probeState.lastSyncError}",
+            stringResource(R.string.cloud_sync_error, probeState.lastSyncError),
             StatusAlarm,
             StatusAlarmBg
         )
         isMonitoring && probeState.lastSyncTimestamp > 0L -> Quadruple(
             Icons.Filled.CloudDone,
-            "Broadcasting as ${settings.deviceName} · synced ${timeFormat.format(Date(probeState.lastSyncTimestamp))}",
+            stringResource(
+                R.string.cloud_broadcasting_synced,
+                settings.deviceName,
+                timeFormat.format(Date(probeState.lastSyncTimestamp))
+            ),
             StatusOnline,
             StatusOnlineBg
         )
         isMonitoring -> Quadruple(
             Icons.Filled.Cloud,
-            "Waiting for Wi-Fi online heartbeat…",
+            stringResource(R.string.cloud_waiting_heartbeat),
             StatusChecking,
             StatusCheckingBg
         )
         else -> Quadruple(
             Icons.Filled.Cloud,
-            "Will broadcast as ${settings.deviceName} when monitoring starts",
+            stringResource(R.string.cloud_will_broadcast, settings.deviceName),
             MaterialTheme.colorScheme.onSurfaceVariant,
             MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
         )
@@ -332,33 +346,39 @@ fun StatusBeacon(status: MonitoringStatus) {
 fun StatusCard(info: WifiProbeInfo) {
     val (title, titleColor, desc) = when (info.status) {
         MonitoringStatus.STOPPED -> Triple(
-            "Service Stopped",
+            stringResource(R.string.status_stopped_title),
             StatusIdle,
-            "Tap Start Monitoring to begin checking Wi-Fi internet."
+            stringResource(R.string.status_stopped_desc)
         )
         MonitoringStatus.CHECKING -> Triple(
-            "Verifying Wi-Fi…",
+            stringResource(R.string.status_checking_title),
             StatusChecking,
-            "Testing connection to Google captive check via Wi-Fi only."
+            stringResource(R.string.status_checking_desc)
         )
         MonitoringStatus.CONNECTED_ONLINE -> Triple(
-            "Wi-Fi Online",
+            stringResource(R.string.status_online_title),
             StatusOnline,
-            "Connected to ${info.wifiSsid ?: "Wi-Fi"} with active internet access."
+            stringResource(
+                R.string.status_online_desc,
+                info.wifiSsid ?: stringResource(R.string.fallback_wifi_name)
+            )
         )
         MonitoringStatus.ALARMING -> Triple(
-            "ALARM: NO INTERNET!",
+            stringResource(R.string.status_alarm_title),
             StatusAlarm,
             if (!info.isWifiConnected) {
-                "Device is disconnected from Wi-Fi!"
+                stringResource(R.string.status_alarm_desc_disconnected)
             } else {
-                "Wi-Fi connected (${info.wifiSsid ?: "network"}), but cannot reach internet!"
+                stringResource(
+                    R.string.status_alarm_desc_no_internet,
+                    info.wifiSsid ?: stringResource(R.string.fallback_network_name)
+                )
             }
         )
         MonitoringStatus.MUTED -> Triple(
-            "Alarm Muted",
+            stringResource(R.string.status_muted_title),
             StatusMuted,
-            "Alarm silenced for this outage. Will re-arm once connection recovers."
+            stringResource(R.string.status_muted_desc)
         )
     }
 
@@ -400,17 +420,23 @@ fun StatusCard(info: WifiProbeInfo) {
                     horizontalArrangement = Arrangement.SpaceEvenly
                 ) {
                     MetricItem(
-                        label = "Wi-Fi Network",
-                        value = if (info.isWifiConnected) info.wifiSsid ?: "Active" else "Disconnected"
+                        label = stringResource(R.string.metric_wifi_network),
+                        value = if (info.isWifiConnected) {
+                            info.wifiSsid ?: stringResource(R.string.metric_wifi_active)
+                        } else {
+                            stringResource(R.string.metric_wifi_disconnected)
+                        }
                     )
 
                     MetricItem(
-                        label = "Latency",
-                        value = info.latencyMs?.let { "${it}ms" } ?: "--"
+                        label = stringResource(R.string.metric_latency),
+                        value = info.latencyMs?.let {
+                            stringResource(R.string.metric_latency_value, it)
+                        } ?: "--"
                     )
 
                     MetricItem(
-                        label = "Failures",
+                        label = stringResource(R.string.metric_failures),
                         value = "${info.consecutiveFailures}/2"
                     )
                 }
@@ -419,7 +445,10 @@ fun StatusCard(info: WifiProbeInfo) {
                     Spacer(modifier = Modifier.height(12.dp))
                     val timeFormat = SimpleDateFormat("HH:mm:ss", Locale.getDefault())
                     Text(
-                        text = "Last probe: ${timeFormat.format(Date(info.lastCheckedTimestamp))}",
+                        text = stringResource(
+                            R.string.metric_last_probe,
+                            timeFormat.format(Date(info.lastCheckedTimestamp))
+                        ),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.outline
                     )
