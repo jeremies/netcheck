@@ -8,87 +8,51 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.scaleIn
-import androidx.compose.animation.scaleOut
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.NotificationsOff
-import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material.icons.filled.Stop
-import androidx.compose.material.icons.filled.VolumeOff
-import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material.icons.filled.Devices
+import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Wifi
-import androidx.compose.material.icons.filled.WifiOff
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Badge
+import androidx.compose.material3.BadgedBox
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.scale
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
-import com.netcheck.app.model.MonitoringStatus
-import com.netcheck.app.model.WifiProbeInfo
+import com.netcheck.app.data.SettingsRepository
+import com.netcheck.app.service.CloudflareClient
 import com.netcheck.app.service.WifiMonitorService
+import com.netcheck.app.ui.DevicesScreen
+import com.netcheck.app.ui.DevicesUiState
+import com.netcheck.app.ui.MonitorScreen
+import com.netcheck.app.ui.SettingsScreen
 import com.netcheck.app.ui.theme.NetCheckTheme
-import com.netcheck.app.ui.theme.StatusAlarm
-import com.netcheck.app.ui.theme.StatusAlarmBg
-import com.netcheck.app.ui.theme.StatusChecking
-import com.netcheck.app.ui.theme.StatusCheckingBg
-import com.netcheck.app.ui.theme.StatusIdle
-import com.netcheck.app.ui.theme.StatusIdleBg
-import com.netcheck.app.ui.theme.StatusMuted
-import com.netcheck.app.ui.theme.StatusMutedBg
-import com.netcheck.app.ui.theme.StatusOnline
-import com.netcheck.app.ui.theme.StatusOnlineBg
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.launch
+
+private enum class MainTab {
+    MONITOR,
+    DEVICES
+}
 
 class MainActivity : ComponentActivity() {
 
@@ -97,16 +61,87 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             NetCheckTheme {
-                MainScreen()
+                NetCheckApp()
             }
         }
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun MainScreen() {
+fun NetCheckApp() {
     val context = LocalContext.current
     val probeState by WifiMonitorService.probeState.collectAsState()
+    val settingsRepository = remember { SettingsRepository.getInstance(context) }
+    val settings by settingsRepository.settings.collectAsState()
+    val cloudflareClient = remember { CloudflareClient() }
+    val coroutineScope = rememberCoroutineScope()
+
+    var selectedTab by remember { mutableStateOf(MainTab.MONITOR) }
+    var showSettings by remember { mutableStateOf(false) }
+    var devicesState by remember { mutableStateOf(DevicesUiState()) }
+    var refreshJob by remember { mutableStateOf<Job?>(null) }
+
+    fun refreshDevices() {
+        val currentSettings = settingsRepository.settings.value
+        if (!currentSettings.isConfigured) {
+            devicesState = DevicesUiState()
+            return
+        }
+        refreshJob?.cancel()
+        devicesState = devicesState.copy(isLoading = true)
+        refreshJob = coroutineScope.launch {
+            val result = cloudflareClient.fetchDevices(currentSettings)
+            result.fold(
+                onSuccess = { payload ->
+                    devicesState = DevicesUiState(
+                        isLoading = false,
+                        devices = payload.devices,
+                        serverTimeMs = payload.serverTimeMs,
+                        lastUpdatedMs = System.currentTimeMillis(),
+                        errorMessage = null
+                    )
+                },
+                onFailure = { error ->
+                    devicesState = devicesState.copy(
+                        isLoading = false,
+                        errorMessage = error.message ?: "Failed to load devices"
+                    )
+                }
+            )
+        }
+    }
+
+    fun deleteDevice(deviceId: String) {
+        val currentSettings = settingsRepository.settings.value
+        if (!currentSettings.isConfigured) return
+        coroutineScope.launch {
+            val result = cloudflareClient.deleteDevice(currentSettings, deviceId)
+            result.fold(
+                onSuccess = {
+                    devicesState = devicesState.copy(
+                        devices = devicesState.devices.filterNot { it.deviceId == deviceId },
+                        errorMessage = null
+                    )
+                    refreshDevices()
+                },
+                onFailure = { error ->
+                    devicesState = devicesState.copy(
+                        errorMessage = error.message ?: "Failed to remove device"
+                    )
+                }
+            )
+        }
+    }
+
+    // Fetch device list once on launch / config change so the Devices badge stays populated
+    LaunchedEffect(settings.normalizedServerUrl, settings.trimmedGroupCode) {
+        if (settings.isConfigured) {
+            refreshDevices()
+        } else {
+            devicesState = DevicesUiState()
+        }
+    }
 
     var hasNotificationPermission by remember {
         mutableStateOf(
@@ -130,290 +165,122 @@ fun MainScreen() {
         }
     }
 
-    val isMonitoring = probeState.status != MonitoringStatus.STOPPED
+    if (showSettings) {
+        SettingsScreen(
+            initialSettings = settings,
+            cloudflareClient = cloudflareClient,
+            onSave = { serverUrl, groupCode, deviceName, broadcastEnabled ->
+                settingsRepository.save(
+                    serverUrl = serverUrl,
+                    groupCode = groupCode,
+                    deviceName = deviceName,
+                    broadcastEnabled = broadcastEnabled
+                )
+                showSettings = false
+                refreshDevices()
+            },
+            onBack = { showSettings = false }
+        )
+        return
+    }
 
     Scaffold(
         modifier = Modifier.fillMaxSize(),
-        containerColor = MaterialTheme.colorScheme.background
-    ) { innerPadding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-                .padding(horizontal = 24.dp, vertical = 32.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.SpaceBetween
-        ) {
-            // App Header
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text(
-                    text = "NetCheck",
-                    style = MaterialTheme.typography.headlineMedium,
-                    fontWeight = FontWeight.Black,
-                    color = MaterialTheme.colorScheme.primary
-                )
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = "Wi-Fi Loss Alarm (No 5G Fallback)",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-
-            // Central Status Indicator & Card
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                StatusBeacon(status = probeState.status)
-
-                Spacer(modifier = Modifier.height(28.dp))
-
-                StatusCard(info = probeState)
-            }
-
-            // Action Buttons
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                // If alarming, show prominent MUTE ALARM button
-                AnimatedVisibility(
-                    visible = probeState.status == MonitoringStatus.ALARMING,
-                    enter = fadeIn() + scaleIn(),
-                    exit = fadeOut() + scaleOut()
-                ) {
-                    Button(
-                        onClick = { WifiMonitorService.mute(context) },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(56.dp)
-                            .padding(bottom = 12.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = StatusAlarm,
-                            contentColor = Color.White
-                        ),
-                        shape = RoundedCornerShape(16.dp)
-                    ) {
-                        Icon(Icons.Filled.VolumeOff, contentDescription = "Mute")
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            text = "MUTE ALARM",
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 17.sp
+        containerColor = MaterialTheme.colorScheme.background,
+        topBar = {
+            TopAppBar(
+                title = {
+                    Text(
+                        text = if (selectedTab == MainTab.MONITOR) "NetCheck" else "Online Devices",
+                        fontWeight = FontWeight.Black,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                },
+                actions = {
+                    if (selectedTab == MainTab.DEVICES && settings.isConfigured) {
+                        IconButton(onClick = { refreshDevices() }) {
+                            Icon(
+                                imageVector = Icons.Filled.Refresh,
+                                contentDescription = "Refresh devices"
+                            )
+                        }
+                    }
+                    IconButton(onClick = { showSettings = true }) {
+                        Icon(
+                            imageVector = Icons.Filled.Settings,
+                            contentDescription = "Settings"
                         )
                     }
                 }
-
-                // Master Start / Stop Toggle Button
-                Button(
-                    onClick = {
-                        if (isMonitoring) {
-                            WifiMonitorService.stop(context)
-                        } else {
-                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && !hasNotificationPermission) {
-                                permissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
-                            } else {
-                                WifiMonitorService.start(context)
+            )
+        },
+        bottomBar = {
+            NavigationBar {
+                NavigationBarItem(
+                    selected = selectedTab == MainTab.MONITOR,
+                    onClick = { selectedTab = MainTab.MONITOR },
+                    icon = {
+                        Icon(
+                            imageVector = Icons.Filled.Wifi,
+                            contentDescription = "Monitor"
+                        )
+                    },
+                    label = { Text("Monitor") }
+                )
+                NavigationBarItem(
+                    selected = selectedTab == MainTab.DEVICES,
+                    onClick = { selectedTab = MainTab.DEVICES },
+                    icon = {
+                        BadgedBox(
+                            badge = {
+                                if (devicesState.onlineCount > 0) {
+                                    Badge {
+                                        Text(devicesState.onlineCount.toString())
+                                    }
+                                }
                             }
+                        ) {
+                            Icon(
+                                imageVector = Icons.Filled.Devices,
+                                contentDescription = "Devices"
+                            )
                         }
                     },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(64.dp),
-                    shape = RoundedCornerShape(20.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = if (isMonitoring) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
-                    )
-                ) {
-                    Icon(
-                        imageVector = if (isMonitoring) Icons.Filled.Stop else Icons.Filled.PlayArrow,
-                        contentDescription = null,
-                        modifier = Modifier.size(28.dp)
-                    )
-                    Spacer(modifier = Modifier.width(10.dp))
-                    Text(
-                        text = if (isMonitoring) "STOP MONITORING" else "START MONITORING",
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
+                    label = { Text("Devices") }
+                )
             }
         }
-    }
-}
-
-@Composable
-fun StatusBeacon(status: MonitoringStatus) {
-    val infiniteTransition = rememberInfiniteTransition(label = "pulse")
-    val pulseScale by infiniteTransition.animateFloat(
-        initialValue = 1.0f,
-        targetValue = if (status == MonitoringStatus.ALARMING) 1.25f else 1.05f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(
-                durationMillis = if (status == MonitoringStatus.ALARMING) 500 else 1800,
-                easing = FastOutSlowInEasing
-            ),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "pulseScale"
-    )
-
-    val (beaconColor, beaconBgColor, icon) = when (status) {
-        MonitoringStatus.STOPPED -> Triple(StatusIdle, StatusIdleBg, Icons.Filled.WifiOff)
-        MonitoringStatus.CHECKING -> Triple(StatusChecking, StatusCheckingBg, Icons.Filled.Wifi)
-        MonitoringStatus.CONNECTED_ONLINE -> Triple(StatusOnline, StatusOnlineBg, Icons.Filled.Wifi)
-        MonitoringStatus.ALARMING -> Triple(StatusAlarm, StatusAlarmBg, Icons.Filled.Warning)
-        MonitoringStatus.MUTED -> Triple(StatusMuted, StatusMutedBg, Icons.Filled.NotificationsOff)
-    }
-
-    Box(
-        contentAlignment = Alignment.Center,
-        modifier = Modifier.size(160.dp)
-    ) {
-        // Outer pulsing glow
-        Box(
-            modifier = Modifier
-                .size(150.dp)
-                .scale(pulseScale)
-                .clip(CircleShape)
-                .background(beaconColor.copy(alpha = 0.2f))
-        )
-
-        // Middle solid ring
-        Box(
-            modifier = Modifier
-                .size(120.dp)
-                .clip(CircleShape)
-                .background(beaconBgColor)
-                .border(3.dp, beaconColor, CircleShape),
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = beaconColor,
-                modifier = Modifier.size(54.dp)
-            )
-        }
-    }
-}
-
-@Composable
-fun StatusCard(info: WifiProbeInfo) {
-    val (title, titleColor, desc) = when (info.status) {
-        MonitoringStatus.STOPPED -> Triple(
-            "Service Stopped",
-            StatusIdle,
-            "Tap Start Monitoring to begin checking Wi-Fi internet."
-        )
-        MonitoringStatus.CHECKING -> Triple(
-            "Verifying Wi-Fi…",
-            StatusChecking,
-            "Testing connection to Google captive check via Wi-Fi only."
-        )
-        MonitoringStatus.CONNECTED_ONLINE -> Triple(
-            "Wi-Fi Online",
-            StatusOnline,
-            "Connected to ${info.wifiSsid ?: "Wi-Fi"} with active internet access."
-        )
-        MonitoringStatus.ALARMING -> Triple(
-            "ALARM: NO INTERNET!",
-            StatusAlarm,
-            if (!info.isWifiConnected) {
-                "Device is disconnected from Wi-Fi!"
-            } else {
-                "Wi-Fi connected (${info.wifiSsid ?: "network"}), but cannot reach internet!"
+    ) { innerPadding ->
+        when (selectedTab) {
+            MainTab.MONITOR -> {
+                MonitorScreen(
+                    probeState = probeState,
+                    settings = settings,
+                    onStartMonitoring = {
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+                            !hasNotificationPermission
+                        ) {
+                            permissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                        } else {
+                            WifiMonitorService.start(context)
+                        }
+                    },
+                    onStopMonitoring = { WifiMonitorService.stop(context) },
+                    onMuteAlarm = { WifiMonitorService.mute(context) },
+                    onOpenSettings = { showSettings = true },
+                    modifier = Modifier.padding(innerPadding)
+                )
             }
-        )
-        MonitoringStatus.MUTED -> Triple(
-            "Alarm Muted",
-            StatusMuted,
-            "Alarm silenced for this outage. Will re-arm once connection recovers."
-        )
-    }
-
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-        )
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(20.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Text(
-                text = title,
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold,
-                color = titleColor,
-                textAlign = TextAlign.Center
-            )
-
-            Spacer(modifier = Modifier.height(6.dp))
-
-            Text(
-                text = desc,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                textAlign = TextAlign.Center
-            )
-
-            if (info.status != MonitoringStatus.STOPPED) {
-                Spacer(modifier = Modifier.height(16.dp))
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceEvenly
-                ) {
-                    MetricItem(
-                        label = "Wi-Fi Network",
-                        value = if (info.isWifiConnected) info.wifiSsid ?: "Active" else "Disconnected"
-                    )
-
-                    MetricItem(
-                        label = "Latency",
-                        value = info.latencyMs?.let { "${it}ms" } ?: "--"
-                    )
-
-                    MetricItem(
-                        label = "Failures",
-                        value = "${info.consecutiveFailures}/2"
-                    )
-                }
-
-                if (info.lastCheckedTimestamp > 0) {
-                    Spacer(modifier = Modifier.height(12.dp))
-                    val timeFormat = SimpleDateFormat("HH:mm:ss", Locale.getDefault())
-                    Text(
-                        text = "Last probe: ${timeFormat.format(Date(info.lastCheckedTimestamp))}",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.outline
-                    )
-                }
+            MainTab.DEVICES -> {
+                DevicesScreen(
+                    settings = settings,
+                    state = devicesState,
+                    onRefresh = { refreshDevices() },
+                    onDeleteDevice = { deleteDevice(it) },
+                    onOpenSettings = { showSettings = true },
+                    modifier = Modifier.padding(innerPadding)
+                )
             }
         }
-    }
-}
-
-@Composable
-fun MetricItem(label: String, value: String) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(
-            text = label,
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-        Spacer(modifier = Modifier.height(2.dp))
-        Text(
-            text = value,
-            style = MaterialTheme.typography.bodyMedium,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onSurface
-        )
     }
 }

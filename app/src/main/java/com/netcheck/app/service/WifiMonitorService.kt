@@ -11,11 +11,14 @@ import android.content.pm.ServiceInfo
 import android.os.Build
 import android.os.IBinder
 import android.os.PowerManager
+import android.os.SystemClock
 import android.util.Log
 import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
 import com.netcheck.app.MainActivity
 import com.netcheck.app.R
+import com.netcheck.app.data.SettingsRepository
+import com.netcheck.app.model.HeartbeatPayload
 import com.netcheck.app.model.MonitoringStatus
 import com.netcheck.app.model.WifiProbeInfo
 import kotlinx.coroutines.CoroutineScope
@@ -29,6 +32,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
 
 class WifiMonitorService : Service() {
 
@@ -38,11 +42,14 @@ class WifiMonitorService : Service() {
     private val serviceScope = CoroutineScope(Dispatchers.Default + serviceJob)
 
     private var monitorJob: Job? = null
+    private var stopJob: Job? = null
     private var wakeLock: PowerManager.WakeLock? = null
 
     private lateinit var prober: NetworkProber
     private lateinit var alarmController: AlarmController
     private lateinit var notificationManager: NotificationManager
+    private lateinit var settingsRepository: SettingsRepository
+    private lateinit var cloudflareClient: CloudflareClient
 
     private var consecutiveFailures = 0
 
@@ -53,6 +60,8 @@ class WifiMonitorService : Service() {
 
         private const val NOTIFICATION_ID = 1001
         private const val CHANNEL_ID = "netcheck_monitor_channel"
+        private const val HEARTBEAT_INTERVAL_MS = 15_000L
+        private const val OFFLINE_TIMEOUT_MS = 2_500L
 
         private val _probeState = MutableStateFlow(WifiProbeInfo())
         val probeState: StateFlow<WifiProbeInfo> = _probeState.asStateFlow()
@@ -92,6 +101,8 @@ class WifiMonitorService : Service() {
 
         prober = NetworkProber(applicationContext)
         alarmController = AlarmController(applicationContext)
+        settingsRepository = SettingsRepository.getInstance(applicationContext)
+        cloudflareClient = CloudflareClient()
 
         val powerManager = getSystemService(Context.POWER_SERVICE) as PowerManager
         wakeLock = powerManager.newWakeLock(
@@ -114,13 +125,18 @@ class WifiMonitorService : Service() {
 
     private fun handleStart() {
         Log.i(tag, "Starting Wi-Fi monitor")
+        stopJob?.cancel()
+        stopJob = null
         wakeLock?.acquire(24 * 60 * 60 * 1000L) // 24h safety limit
 
+        val currentSettings = settingsRepository.settings.value
         val initialInfo = WifiProbeInfo(
             status = MonitoringStatus.CHECKING,
             consecutiveFailures = 0,
             wifiSsid = prober.getSsid(),
-            isWifiConnected = prober.isWifiConnected()
+            isWifiConnected = prober.isWifiConnected(),
+            isBroadcastConfigured = currentSettings.isConfigured,
+            isBroadcastEnabled = currentSettings.broadcastEnabled
         )
         _probeState.value = initialInfo
 
@@ -154,10 +170,30 @@ class WifiMonitorService : Service() {
             wakeLock?.release()
         }
 
-        _probeState.value = WifiProbeInfo(status = MonitoringStatus.STOPPED)
+        val settings = settingsRepository.settings.value
+        val wifiNetwork = prober.getActiveWifiNetwork()
+
+        _probeState.value = WifiProbeInfo(
+            status = MonitoringStatus.STOPPED,
+            isBroadcastConfigured = settings.isConfigured,
+            isBroadcastEnabled = settings.broadcastEnabled
+        )
 
         stopForeground(STOP_FOREGROUND_REMOVE)
-        stopSelf()
+
+        if (settings.broadcastEnabled && settings.isConfigured) {
+            stopJob?.cancel()
+            stopJob = serviceScope.launch {
+                withTimeoutOrNull(OFFLINE_TIMEOUT_MS) {
+                    cloudflareClient.sendOffline(wifiNetwork, settings)
+                }
+                if (isActive) {
+                    stopSelf()
+                }
+            }
+        } else {
+            stopSelf()
+        }
     }
 
     private fun handleMute() {
@@ -175,9 +211,17 @@ class WifiMonitorService : Service() {
         consecutiveFailures = 0
 
         monitorJob = serviceScope.launch {
+            var lastHeartbeatElapsedMs = 0L
+            var lastSyncTimestamp = 0L
+            var lastSyncError: String? = null
+            var wasOnlinePreviously = false
+            var wasBroadcastReadyPreviously = false
+
             while (isActive) {
                 val result = prober.probeWifiInternet()
                 val currentTime = System.currentTimeMillis()
+                val settings = settingsRepository.settings.value
+                val broadcastReady = settings.broadcastEnabled && settings.isConfigured
 
                 val newStatus: MonitoringStatus
                 if (result.success) {
@@ -188,7 +232,52 @@ class WifiMonitorService : Service() {
                         alarmController.resetMuteState()
                     }
                     newStatus = MonitoringStatus.CONNECTED_ONLINE
+
+                    if (broadcastReady) {
+                        val nowElapsed = SystemClock.elapsedRealtime()
+                        val shouldSend = !wasOnlinePreviously ||
+                            !wasBroadcastReadyPreviously ||
+                            (nowElapsed - lastHeartbeatElapsedMs >= HEARTBEAT_INTERVAL_MS)
+                        if (shouldSend) {
+                            val wifiNetwork = prober.getActiveWifiNetwork()
+                            if (wifiNetwork != null) {
+                                val battery = BatteryReader.read(applicationContext)
+                                val payload = HeartbeatPayload(
+                                    deviceId = settings.deviceId,
+                                    name = settings.deviceName,
+                                    wifiSsid = result.ssid ?: prober.getSsid(),
+                                    latencyMs = result.latencyMs?.toInt(),
+                                    batteryPct = battery.percentage,
+                                    isCharging = battery.isCharging
+                                )
+                                lastHeartbeatElapsedMs = nowElapsed
+                                val syncResult = cloudflareClient.sendHeartbeat(wifiNetwork, settings, payload)
+                                syncResult.fold(
+                                    onSuccess = { serverTime ->
+                                        lastSyncTimestamp = serverTime
+                                        lastSyncError = null
+                                    },
+                                    onFailure = { err ->
+                                        // Server/sync errors must never trigger the Wi-Fi loss alarm
+                                        Log.w(tag, "Cloud heartbeat failed: ${err.message}")
+                                        lastSyncError = err.message ?: "Sync failed"
+                                    }
+                                )
+                            }
+                        }
+                        wasBroadcastReadyPreviously = true
+                    } else {
+                        wasBroadcastReadyPreviously = false
+                        lastSyncError = null
+                    }
+                    wasOnlinePreviously = true
                 } else {
+                    wasOnlinePreviously = false
+                    if (!broadcastReady) {
+                        wasBroadcastReadyPreviously = false
+                        lastSyncError = null
+                    }
+
                     consecutiveFailures++
                     Log.w(tag, "Probe failure #$consecutiveFailures: ${result.errorMessage}")
 
@@ -216,7 +305,11 @@ class WifiMonitorService : Service() {
                     lastCheckedTimestamp = currentTime,
                     wifiSsid = result.ssid ?: prober.getSsid(),
                     isWifiConnected = result.isWifiConnected,
-                    errorMessage = result.errorMessage
+                    errorMessage = result.errorMessage,
+                    lastSyncTimestamp = lastSyncTimestamp,
+                    lastSyncError = lastSyncError,
+                    isBroadcastConfigured = settings.isConfigured,
+                    isBroadcastEnabled = settings.broadcastEnabled
                 )
 
                 _probeState.value = updatedInfo

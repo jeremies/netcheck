@@ -168,6 +168,8 @@ class NetworkProber(private val context: Context) {
 
     fun isWifiConnected(): Boolean = activeWifiNetwork != null
 
+    fun getActiveWifiNetwork(): Network? = activeWifiNetwork
+
     fun release() {
         try {
             connectivityManager.unregisterNetworkCallback(networkCallback)
