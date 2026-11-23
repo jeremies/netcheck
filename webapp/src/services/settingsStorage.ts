@@ -3,6 +3,7 @@ import { detectDefaultLocale } from "../i18n";
 
 const STORAGE_KEY = "netcheck_cloud_settings_v1";
 const LOCALE_KEY = "netcheck_locale_v1";
+export const DEFAULT_SERVER_URL = "https://netcheck-server.jmonserrat-54c.workers.dev";
 
 function generateUuid(): string {
   if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
@@ -47,7 +48,10 @@ export function loadSettings(): CloudSettings {
     if (raw) {
       const parsed = JSON.parse(raw) as Partial<CloudSettings>;
       const settings: CloudSettings = {
-        serverUrl: typeof parsed.serverUrl === "string" ? parsed.serverUrl : "",
+        serverUrl:
+          typeof parsed.serverUrl === "string" && parsed.serverUrl.trim()
+            ? parsed.serverUrl
+            : DEFAULT_SERVER_URL,
         groupCode: typeof parsed.groupCode === "string" ? parsed.groupCode : "",
         deviceName:
           typeof parsed.deviceName === "string" && parsed.deviceName.trim()
@@ -68,7 +72,7 @@ export function loadSettings(): CloudSettings {
   }
 
   const initial: CloudSettings = {
-    serverUrl: "",
+    serverUrl: DEFAULT_SERVER_URL,
     groupCode: "",
     deviceName: defaultDeviceName(),
     deviceId: generateUuid(),
@@ -85,7 +89,7 @@ export function loadSettings(): CloudSettings {
 export function saveSettings(settings: CloudSettings): CloudSettings {
   const normalized: CloudSettings = {
     ...settings,
-    serverUrl: normalizeServerUrl(settings.serverUrl),
+    serverUrl: normalizeServerUrl(settings.serverUrl) || DEFAULT_SERVER_URL,
     groupCode: settings.groupCode.trim(),
     deviceName: settings.deviceName.trim() || defaultDeviceName()
   };
