@@ -24,12 +24,20 @@ class HttpError extends Error {
   }
 }
 
+const CORS_HEADERS: Record<string, string> = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "GET, POST, DELETE, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type, X-Group-Code",
+  "Access-Control-Max-Age": "86400"
+};
+
 function jsonResponse(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
     status,
     headers: {
       "Content-Type": "application/json; charset=utf-8",
-      "Cache-Control": "no-store"
+      "Cache-Control": "no-store",
+      ...CORS_HEADERS
     }
   });
 }
@@ -306,6 +314,13 @@ export default {
     const url = new URL(request.url);
     const { pathname } = url;
     const method = request.method.toUpperCase();
+
+    if (method === "OPTIONS") {
+      return new Response(null, {
+        status: 204,
+        headers: CORS_HEADERS
+      });
+    }
 
     try {
       if (method === "GET" && pathname === "/api/health") {
