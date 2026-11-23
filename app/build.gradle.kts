@@ -27,7 +27,7 @@ android {
     compileSdk = 34
 
     defaultConfig {
-        applicationId = "com.netcheck.app"
+        applicationId = "com.monserrat.netcheck"
         minSdk = 26
         targetSdk = 34
         versionCode = 1
