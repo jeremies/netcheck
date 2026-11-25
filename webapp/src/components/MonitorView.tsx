@@ -4,6 +4,7 @@ import {
   CloudOff,
   Play,
   Square,
+  Volume2,
   VolumeX,
   Wifi,
   WifiOff
@@ -15,7 +16,9 @@ import { isSettingsConfigured } from "../services/settingsStorage";
 interface MonitorViewProps {
   probeState: ProbeInfo;
   settings: CloudSettings;
+  isAudioLocked: boolean;
   t: Translations;
+  onUnlockAudio: () => void;
   onStartMonitoring: () => void;
   onStopMonitoring: () => void;
   onMuteAlarm: () => void;
@@ -56,7 +59,9 @@ function getStatusVisuals(status: MonitoringStatus) {
 export function MonitorView({
   probeState,
   settings,
+  isAudioLocked,
   t,
+  onUnlockAudio,
   onStartMonitoring,
   onStopMonitoring,
   onMuteAlarm,
@@ -179,6 +184,17 @@ export function MonitorView({
           <CloudIcon size={16} />
           <span>{cloudText}</span>
         </button>
+
+        {isMonitoring && isAudioLocked && (
+          <button
+            type="button"
+            className="audio-unlock-banner"
+            onClick={onUnlockAudio}
+          >
+            <Volume2 size={16} />
+            <span>{t.audioLockedBanner}</span>
+          </button>
+        )}
       </div>
 
       <div className="monitor-actions">

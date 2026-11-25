@@ -33,6 +33,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -156,13 +157,32 @@ fun NetCheckApp() {
             }
         )
     }
+    var hasAttemptedAutoStart by rememberSaveable { mutableStateOf(false) }
+    var hasRequestedNotificationPermission by rememberSaveable { mutableStateOf(false) }
 
     val permissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
     ) { isGranted ->
         hasNotificationPermission = isGranted
-        if (isGranted) {
+        if (!WifiMonitorService.isRunning()) {
             WifiMonitorService.start(context)
+        }
+    }
+
+    // Start monitoring automatically once per app launch
+    LaunchedEffect(Unit) {
+        if (!hasAttemptedAutoStart) {
+            hasAttemptedAutoStart = true
+            if (!WifiMonitorService.isRunning()) {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+                    !hasNotificationPermission
+                ) {
+                    hasRequestedNotificationPermission = true
+                    permissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                } else {
+                    WifiMonitorService.start(context)
+                }
+            }
         }
     }
 
@@ -170,9 +190,8 @@ fun NetCheckApp() {
         SettingsScreen(
             initialSettings = settings,
             cloudflareClient = cloudflareClient,
-            onSave = { serverUrl, groupCode, deviceName, broadcastEnabled ->
+            onSave = { groupCode, deviceName, broadcastEnabled ->
                 settingsRepository.save(
-                    serverUrl = serverUrl,
                     groupCode = groupCode,
                     deviceName = deviceName,
                     broadcastEnabled = broadcastEnabled
@@ -265,8 +284,10 @@ fun NetCheckApp() {
                     settings = settings,
                     onStartMonitoring = {
                         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
-                            !hasNotificationPermission
+                            !hasNotificationPermission &&
+                            !hasRequestedNotificationPermission
                         ) {
+                            hasRequestedNotificationPermission = true
                             permissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
                         } else {
                             WifiMonitorService.start(context)

@@ -13,6 +13,7 @@ export interface Translations {
   btnMuteAlarm: string;
   btnStartMonitoring: string;
   btnStopMonitoring: string;
+  audioLockedBanner: string;
   cloudSyncNotConfigured: string;
   cloudBroadcastDisabled: string;
   cloudSyncError: (err: string) => string;
@@ -63,8 +64,6 @@ export interface Translations {
   backLabel: string;
   settingsBroadcastTitle: string;
   settingsBroadcastDesc: string;
-  settingsServerUrlLabel: string;
-  settingsServerUrlPlaceholder: string;
   btnTestConnection: string;
   settingsTestConnected: (ms: number) => string;
   settingsTestFailed: string;
@@ -77,6 +76,8 @@ export interface Translations {
   btnGenerateCode: string;
   btnCopied: string;
   btnCopy: string;
+  btnCopyLink: string;
+  btnLinkCopied: string;
   settingsDeviceNameLabel: string;
   settingsDeviceId: (id: string) => string;
   btnSaveSettings: string;
@@ -84,7 +85,6 @@ export interface Translations {
   notifAlarmDisconnected: string;
   notifAlarmNoInternet: string;
   errorServerUrlNotConfigured: string;
-  errorEnterServerUrl: string;
   errorUnexpectedHealthResponse: string;
   errorBrowserOffline: string;
   errorProbeTimeout: string;
@@ -105,6 +105,7 @@ const en: Translations = {
   btnMuteAlarm: "MUTE ALARM",
   btnStartMonitoring: "START MONITORING",
   btnStopMonitoring: "STOP MONITORING",
+  audioLockedBanner: "Browser audio locked · Click anywhere to enable alarm sound",
   cloudSyncNotConfigured: "Cloud sync not configured · Click to set up",
   cloudBroadcastDisabled: "Cloud broadcast disabled",
   cloudSyncError: (err) => `Sync error: ${err}`,
@@ -137,9 +138,9 @@ const en: Translations = {
     `Remove "${name}" from this group list? If it is still monitoring, it will reappear on its next heartbeat.`,
   actionRemove: "Remove",
   actionCancel: "Cancel",
-  devicesUnconfiguredTitle: "Set Up Cloudflare Sync",
+  devicesUnconfiguredTitle: "Set Up Cloud Sync",
   devicesUnconfiguredDesc: (minLen) =>
-    `Enter your Cloudflare Worker URL and a shared Group Code (at least ${minLen} characters) in Settings to broadcast and view online devices.`,
+    `Enter a shared Group Code (at least ${minLen} characters) in Settings to broadcast and view online devices.`,
   btnOpenSettings: "Open Settings",
   devicesSummaryCounts: (online, offline) => `${online} online · ${offline} offline`,
   devicesSummaryUpdated: (time) => `Updated ${time} · auto-refreshes every 10s`,
@@ -154,12 +155,10 @@ const en: Translations = {
   relativeMinutesAgo: (m) => `${m}m ago`,
   relativeHoursAgo: (h) => `${h}h ago`,
   relativeDaysAgo: (d) => `${d}d ago`,
-  settingsTitle: "Cloudflare Settings",
+  settingsTitle: "Cloud Sync Settings",
   backLabel: "Back",
   settingsBroadcastTitle: "Broadcast Online Status",
   settingsBroadcastDesc: "Sends heartbeats every 15s while monitoring is active.",
-  settingsServerUrlLabel: "Cloudflare Worker URL",
-  settingsServerUrlPlaceholder: "https://netcheck-server.<subdomain>.workers.dev",
   btnTestConnection: "Test Connection",
   settingsTestConnected: (ms) => `Connected (${ms}ms)`,
   settingsTestFailed: "Connection failed",
@@ -172,14 +171,15 @@ const en: Translations = {
   btnGenerateCode: "Generate Code",
   btnCopied: "Copied",
   btnCopy: "Copy",
+  btnCopyLink: "Copy Share Link",
+  btnLinkCopied: "Link Copied",
   settingsDeviceNameLabel: "Device Name",
   settingsDeviceId: (id) => `Device ID: ${id}`,
   btnSaveSettings: "Save Settings",
   notifAlarmTitle: "⚠️ NO INTERNET!",
   notifAlarmDisconnected: "Network is disconnected!",
   notifAlarmNoInternet: "Cannot reach internet!",
-  errorServerUrlNotConfigured: "Server URL is not configured",
-  errorEnterServerUrl: "Please enter a server URL",
+  errorServerUrlNotConfigured: "Sync service is not configured",
   errorUnexpectedHealthResponse: "Unexpected server health response",
   errorBrowserOffline: "Network is disconnected or offline",
   errorProbeTimeout: "Connection error / timeout",
@@ -200,6 +200,7 @@ const es: Translations = {
   btnMuteAlarm: "SILENCIAR ALARMA",
   btnStartMonitoring: "INICIAR MONITORIZACIÓN",
   btnStopMonitoring: "DETENER MONITORIZACIÓN",
+  audioLockedBanner: "Audio bloqueado por el navegador · Pulsa en cualquier lugar para activar el sonido de alarma",
   cloudSyncNotConfigured: "Sincronización en la nube no configurada · Pulsa para configurar",
   cloudBroadcastDisabled: "Envío a la nube desactivado",
   cloudSyncError: (err) => `Error de sincronización: ${err}`,
@@ -232,9 +233,9 @@ const es: Translations = {
     `¿Eliminar "${name}" de la lista de este grupo? Si sigue monitorizando, volverá a aparecer con su próxima señal de estado.`,
   actionRemove: "Eliminar",
   actionCancel: "Cancelar",
-  devicesUnconfiguredTitle: "Configurar sincronización con Cloudflare",
+  devicesUnconfiguredTitle: "Configurar sincronización",
   devicesUnconfiguredDesc: (minLen) =>
-    `Introduce la URL de tu Worker de Cloudflare y un código de grupo compartido (mínimo ${minLen} caracteres) en Ajustes para enviar y ver los dispositivos en línea.`,
+    `Introduce un código de grupo compartido (mínimo ${minLen} caracteres) en Ajustes para enviar y ver los dispositivos en línea.`,
   btnOpenSettings: "Abrir ajustes",
   devicesSummaryCounts: (online, offline) => `${online} en línea · ${offline} sin conexión`,
   devicesSummaryUpdated: (time) => `Actualizado ${time} · actualización automática cada 10 s`,
@@ -249,12 +250,10 @@ const es: Translations = {
   relativeMinutesAgo: (m) => `Hace ${m} min`,
   relativeHoursAgo: (h) => `Hace ${h} h`,
   relativeDaysAgo: (d) => `Hace ${d} d`,
-  settingsTitle: "Ajustes de Cloudflare",
+  settingsTitle: "Ajustes de sincronización",
   backLabel: "Volver",
   settingsBroadcastTitle: "Compartir estado en línea",
   settingsBroadcastDesc: "Envía señales de estado cada 15 s mientras la monitorización está activa.",
-  settingsServerUrlLabel: "URL del Worker de Cloudflare",
-  settingsServerUrlPlaceholder: "https://netcheck-server.<subdominio>.workers.dev",
   btnTestConnection: "Probar conexión",
   settingsTestConnected: (ms) => `Conectado (${ms} ms)`,
   settingsTestFailed: "Error de conexión",
@@ -267,14 +266,15 @@ const es: Translations = {
   btnGenerateCode: "Generar código",
   btnCopied: "Copiado",
   btnCopy: "Copiar",
+  btnCopyLink: "Copiar enlace",
+  btnLinkCopied: "Enlace copiado",
   settingsDeviceNameLabel: "Nombre del dispositivo",
   settingsDeviceId: (id) => `ID del dispositivo: ${id}`,
   btnSaveSettings: "Guardar ajustes",
   notifAlarmTitle: "⚠️ ¡SIN INTERNET!",
   notifAlarmDisconnected: "¡La red está desconectada!",
   notifAlarmNoInternet: "¡Sin conexión a internet!",
-  errorServerUrlNotConfigured: "La URL del servidor no está configurada",
-  errorEnterServerUrl: "Por favor, introduce una URL del servidor",
+  errorServerUrlNotConfigured: "El servicio de sincronización no está configurado",
   errorUnexpectedHealthResponse: "Respuesta inesperada del servidor",
   errorBrowserOffline: "La red está desconectada o sin conexión",
   errorProbeTimeout: "Error de conexión / tiempo agotado",

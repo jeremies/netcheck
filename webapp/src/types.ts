@@ -54,6 +54,7 @@ export interface DevicesUiState {
 }
 
 export const MIN_GROUP_CODE_LENGTH = 6;
+export const MAX_GROUP_CODE_LENGTH = 128;
 export const PROBE_INTERVAL_MS = 5_000;
 export const HEARTBEAT_INTERVAL_MS = 15_000;
 export const DEVICES_REFRESH_INTERVAL_MS = 10_000;

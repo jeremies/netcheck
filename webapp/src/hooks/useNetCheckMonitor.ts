@@ -33,6 +33,16 @@ export function useNetCheckMonitor(settings: CloudSettings, t: Translations) {
     alarmRef.current = new AlarmController();
   }
 
+  const [isAudioLocked, setIsAudioLocked] = useState<boolean>(() =>
+    alarmRef.current ? !alarmRef.current.isAudioUnlocked() : false
+  );
+  const [hasRequestedNotifications, setHasRequestedNotifications] = useState<boolean>(
+    () => typeof Notification === "undefined" || Notification.permission !== "default"
+  );
+  const hasRequestedNotificationsRef = useRef<boolean>(
+    typeof Notification === "undefined" || Notification.permission !== "default"
+  );
+
   const isRunningRef = useRef(false);
   const isMutedRef = useRef(false);
   const consecutiveFailuresRef = useRef(0);
@@ -51,6 +61,37 @@ export function useNetCheckMonitor(settings: CloudSettings, t: Translations) {
       isBroadcastEnabled: settings.broadcastEnabled
     }));
   }, [settings]);
+
+  const unlockAudioAndPermissions = useCallback(async () => {
+    const alarm = alarmRef.current;
+    if (!alarm) return;
+
+    const unlocked = await alarm.unlockAudio();
+    setIsAudioLocked(!unlocked);
+
+    if (!hasRequestedNotificationsRef.current) {
+      hasRequestedNotificationsRef.current = true;
+      setHasRequestedNotifications(true);
+      void alarm.requestNotificationPermission();
+    }
+  }, []);
+
+  // Unlock browser audio and request notifications on first user interaction
+  useEffect(() => {
+    if (!isAudioLocked && hasRequestedNotifications) return;
+
+    const handleUserGesture = () => {
+      void unlockAudioAndPermissions();
+    };
+
+    window.addEventListener("pointerdown", handleUserGesture, true);
+    window.addEventListener("keydown", handleUserGesture, true);
+
+    return () => {
+      window.removeEventListener("pointerdown", handleUserGesture, true);
+      window.removeEventListener("keydown", handleUserGesture, true);
+    };
+  }, [isAudioLocked, hasRequestedNotifications, unlockAudioAndPermissions]);
 
   const maybeSendHeartbeat = useCallback(async (latencyMs: number | null, force = false) => {
     const currentSettings = settingsRef.current;
@@ -151,27 +192,35 @@ export function useNetCheckMonitor(settings: CloudSettings, t: Translations) {
     }
   }, [maybeSendHeartbeat]);
 
+  const beginMonitoring = useCallback(
+    (fromUserGesture: boolean) => {
+      if (isRunningRef.current) return;
+      isRunningRef.current = true;
+      isMutedRef.current = false;
+      consecutiveFailuresRef.current = 0;
+      lastHeartbeatSentRef.current = 0;
+
+      if (fromUserGesture) {
+        void unlockAudioAndPermissions();
+      }
+
+      setProbeState((prev) => ({
+        ...prev,
+        status: "CHECKING",
+        consecutiveFailures: 0,
+        latencyMs: null,
+        errorMessage: null,
+        lastSyncError: null
+      }));
+
+      void runProbe();
+    },
+    [runProbe, unlockAudioAndPermissions]
+  );
+
   const startMonitoring = useCallback(() => {
-    if (isRunningRef.current) return;
-    isRunningRef.current = true;
-    isMutedRef.current = false;
-    consecutiveFailuresRef.current = 0;
-    lastHeartbeatSentRef.current = 0;
-
-    alarmRef.current?.unlockAudio();
-    void alarmRef.current?.requestNotificationPermission();
-
-    setProbeState((prev) => ({
-      ...prev,
-      status: "CHECKING",
-      consecutiveFailures: 0,
-      latencyMs: null,
-      errorMessage: null,
-      lastSyncError: null
-    }));
-
-    void runProbe();
-  }, [runProbe]);
+    beginMonitoring(true);
+  }, [beginMonitoring]);
 
   const stopMonitoring = useCallback(() => {
     if (!isRunningRef.current) return;
@@ -203,6 +252,15 @@ export function useNetCheckMonitor(settings: CloudSettings, t: Translations) {
       status: prev.status === "ALARMING" ? "MUTED" : prev.status
     }));
   }, []);
+
+  // Auto-start monitoring on initialization
+  useEffect(() => {
+    beginMonitoring(false);
+    return () => {
+      isRunningRef.current = false;
+      alarmRef.current?.stopAlarm();
+    };
+  }, [beginMonitoring]);
 
   // Periodic 5s probe loop while monitoring
   useEffect(() => {
@@ -248,6 +306,8 @@ export function useNetCheckMonitor(settings: CloudSettings, t: Translations) {
 
   return {
     probeState,
+    isAudioLocked,
+    unlockAudio: unlockAudioAndPermissions,
     startMonitoring,
     stopMonitoring,
     muteAlarm

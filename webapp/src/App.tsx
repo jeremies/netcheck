@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Laptop, Radio, RefreshCw, Settings, Wifi } from "lucide-react";
 import type { CloudSettings, DevicesUiState, Locale } from "./types";
 import { translations } from "./i18n";
@@ -7,7 +7,8 @@ import {
   loadLocale,
   loadSettings,
   saveLocale,
-  saveSettings
+  saveSettings,
+  stripGroupQueryParamsFromUrl
 } from "./services/settingsStorage";
 import { deleteDevice, fetchDevices } from "./services/cloudflareClient";
 import { useNetCheckMonitor } from "./hooks/useNetCheckMonitor";
@@ -32,10 +33,18 @@ export function App() {
   });
 
   const t = translations[locale];
-  const { probeState, startMonitoring, stopMonitoring, muteAlarm } = useNetCheckMonitor(
-    settings,
-    t
-  );
+  const {
+    probeState,
+    isAudioLocked,
+    unlockAudio,
+    startMonitoring,
+    stopMonitoring,
+    muteAlarm
+  } = useNetCheckMonitor(settings, t);
+
+  useEffect(() => {
+    stripGroupQueryParamsFromUrl();
+  }, []);
 
   const handleChangeLocale = useCallback((next: Locale) => {
     setLocale(next);
@@ -154,7 +163,9 @@ export function App() {
           <MonitorView
             probeState={probeState}
             settings={settings}
+            isAudioLocked={isAudioLocked}
             t={t}
+            onUnlockAudio={() => void unlockAudio()}
             onStartMonitoring={startMonitoring}
             onStopMonitoring={stopMonitoring}
             onMuteAlarm={muteAlarm}

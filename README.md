@@ -37,12 +37,11 @@ When configured in **Settings**, NetCheck also reports your device's Wi-Fi avail
 ## 📱 User Interface
 
 - **2-Tab Navigation**:
-  - **Monitor**: Start/Stop monitoring button, live pulsing status beacon, Wi-Fi SSID / latency / failure metrics, one-tap **MUTE ALARM** button when sounding, and a live cloud broadcast status chip.
+  - **Monitor**: Start/Stop monitoring button (monitoring starts automatically on app/webapp launch), live pulsing status beacon, Wi-Fi SSID / latency / failure metrics, one-tap **MUTE ALARM** button when sounding, and a live cloud broadcast status chip.
   - **Devices** (with live online count badge): Auto-refreshes every **10 seconds** while open, listing Online devices first followed by Offline devices with last-seen time, Wi-Fi SSID (when available), probe latency, battery % + charging state, and delete confirmation for removing old entries.
 - **Settings (Gear Icon)**:
-  - Toggle **Broadcast Online Status** on/off.
-  - Set or test your **Cloudflare Worker URL** (`Test Connection` checks `/api/health`).
-  - Enter, generate, copy, or show/hide your **Shared Group Code**.
+  - Toggle **Broadcast Online Status** on/off and test sync server connectivity (`Test Connection` checks `/api/health`; the backend Worker URL is preconfigured and hidden from users).
+  - Enter, generate, copy, or show/hide your **Shared Group Code** (in `webapp/`, a group code can also be supplied via `?group=`, `?groupCode=`, or `?code=` query parameter or copied as a share link).
   - Customize your **Device Name** (defaults to device manufacturer/model) with a persistent generated UUID.
 
 ---
@@ -104,13 +103,12 @@ npx wrangler deploy                               # Deploy Worker and print *.wo
 - JDK 17
 - Android SDK with Platform 34
 
-### Optional Pre-configured Defaults (`local.properties`)
-You can prefill the default Server URL and/or Group Code baked into `BuildConfig` at build time by adding these gitignored properties to `local.properties`:
+### Optional Pre-configured Default (`local.properties`)
+You can prefill the default Group Code baked into `BuildConfig` at build time by adding this gitignored property to `local.properties`:
 ```properties
-netcheck.serverUrl=https://your-worker.your-subdomain.workers.dev
 netcheck.groupCode=YOUR-GROUP-CODE
 ```
-Both values remain editable inside the app's **Settings** screen.
+This value remains editable inside the app's **Settings** screen.
 
 ### Building via Terminal
 ```bash

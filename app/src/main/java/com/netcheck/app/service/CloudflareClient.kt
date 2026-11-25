@@ -201,11 +201,11 @@ class CloudflareClient(context: Context) {
             }
         }
 
-    suspend fun checkHealth(rawServerUrl: String): Result<Long> = withContext(Dispatchers.IO) {
+    suspend fun checkHealth(): Result<Long> = withContext(Dispatchers.IO) {
         runCatching {
-            val baseUrl = CloudSettings.normalizeUrl(rawServerUrl)
+            val baseUrl = CloudSettings.normalizeUrl(CloudSettings.SERVER_URL)
             require(baseUrl.isNotBlank()) {
-                appContext.getString(R.string.error_enter_server_url)
+                appContext.getString(R.string.error_server_url_not_configured)
             }
 
             val start = SystemClock.elapsedRealtime()

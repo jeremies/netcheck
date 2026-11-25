@@ -6,16 +6,37 @@ export class AlarmController {
   private activeNotification: Notification | null = null;
   private readonly originalTitle = typeof document !== "undefined" ? document.title : "NetCheck";
 
-  public unlockAudio(): void {
-    if (typeof window === "undefined") return;
-    const AudioCtx = window.AudioContext || (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
-    if (!AudioCtx) return;
+  private getAudioContextConstructor(): typeof AudioContext | undefined {
+    if (typeof window === "undefined") return undefined;
+    return (
+      window.AudioContext ||
+      (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext
+    );
+  }
 
-    if (!this.audioCtx) {
-      this.audioCtx = new AudioCtx();
-    }
-    if (this.audioCtx.state === "suspended") {
-      void this.audioCtx.resume();
+  public canUseAudio(): boolean {
+    return Boolean(this.getAudioContextConstructor());
+  }
+
+  public isAudioUnlocked(): boolean {
+    if (!this.canUseAudio()) return true;
+    return this.audioCtx !== null && this.audioCtx.state === "running";
+  }
+
+  public async unlockAudio(): Promise<boolean> {
+    const AudioCtx = this.getAudioContextConstructor();
+    if (!AudioCtx) return true;
+
+    try {
+      if (!this.audioCtx) {
+        this.audioCtx = new AudioCtx();
+      }
+      if (this.audioCtx.state === "suspended") {
+        await this.audioCtx.resume();
+      }
+      return this.audioCtx.state === "running";
+    } catch {
+      return false;
     }
   }
 
@@ -33,7 +54,7 @@ export class AlarmController {
   public startAlarm(title: string, body: string): void {
     if (this.isPlaying) return;
     this.isPlaying = true;
-    this.unlockAudio();
+    void this.unlockAudio();
 
     // Play immediate tone then repeat every 900ms
     this.playDualBeep();
@@ -87,10 +108,7 @@ export class AlarmController {
   }
 
   private playDualBeep(): void {
-    if (!this.audioCtx) return;
-    if (this.audioCtx.state === "suspended") {
-      void this.audioCtx.resume();
-    }
+    if (!this.audioCtx || this.audioCtx.state !== "running") return;
 
     const now = this.audioCtx.currentTime;
     this.scheduleTone(880, now, 0.22);

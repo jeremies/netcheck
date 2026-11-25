@@ -13,7 +13,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -50,7 +49,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
@@ -68,7 +66,6 @@ fun SettingsScreen(
     initialSettings: CloudSettings,
     cloudflareClient: CloudflareClient,
     onSave: (
-        serverUrl: String,
         groupCode: String,
         deviceName: String,
         broadcastEnabled: Boolean
@@ -77,7 +74,6 @@ fun SettingsScreen(
 ) {
     BackHandler(onBack = onBack)
 
-    var serverUrl by remember(initialSettings) { mutableStateOf(initialSettings.serverUrl) }
     var groupCode by remember(initialSettings) { mutableStateOf(initialSettings.groupCode) }
     var deviceName by remember(initialSettings) { mutableStateOf(initialSettings.deviceName) }
     var broadcastEnabled by remember(initialSettings) { mutableStateOf(initialSettings.broadcastEnabled) }
@@ -118,68 +114,54 @@ fun SettingsScreen(
                 .padding(horizontal = 20.dp, vertical = 12.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f)
-                )
-            ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 14.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f)
+                    )
                 ) {
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = stringResource(R.string.settings_broadcast_title),
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.SemiBold
-                        )
-                        Spacer(modifier = Modifier.height(2.dp))
-                        Text(
-                            text = stringResource(R.string.settings_broadcast_desc),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 14.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = stringResource(R.string.settings_broadcast_title),
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                            Spacer(modifier = Modifier.height(2.dp))
+                            Text(
+                                text = stringResource(R.string.settings_broadcast_desc),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Switch(
+                            checked = broadcastEnabled,
+                            onCheckedChange = { broadcastEnabled = it }
                         )
                     }
-                    Spacer(modifier = Modifier.width(12.dp))
-                    Switch(
-                        checked = broadcastEnabled,
-                        onCheckedChange = { broadcastEnabled = it }
-                    )
                 }
-            }
-
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedTextField(
-                    value = serverUrl,
-                    onValueChange = {
-                        serverUrl = it
-                        testMessage = null
-                        testSucceeded = null
-                    },
-                    label = { Text(stringResource(R.string.settings_server_url_label)) },
-                    placeholder = { Text(stringResource(R.string.settings_server_url_placeholder)) },
-                    singleLine = true,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri),
-                    modifier = Modifier.fillMaxWidth()
-                )
 
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     OutlinedButton(
-                        enabled = !isTesting && serverUrl.isNotBlank(),
+                        enabled = !isTesting,
                         onClick = {
                             isTesting = true
                             testMessage = null
                             testSucceeded = null
                             coroutineScope.launch {
-                                val result = cloudflareClient.checkHealth(serverUrl)
+                                val result = cloudflareClient.checkHealth()
                                 isTesting = false
                                 result.fold(
                                     onSuccess = { ms ->
@@ -232,7 +214,7 @@ fun SettingsScreen(
                 OutlinedTextField(
                     value = groupCode,
                     onValueChange = {
-                        groupCode = it
+                        groupCode = it.take(CloudSettings.MAX_GROUP_CODE_LENGTH)
                         copiedNotice = false
                     },
                     label = { Text(stringResource(R.string.settings_group_code_label)) },
@@ -339,7 +321,7 @@ fun SettingsScreen(
             Button(
                 enabled = isGroupCodeValid,
                 onClick = {
-                    onSave(serverUrl, groupCode, deviceName, broadcastEnabled)
+                    onSave(groupCode, deviceName, broadcastEnabled)
                 },
                 modifier = Modifier
                     .fillMaxWidth()

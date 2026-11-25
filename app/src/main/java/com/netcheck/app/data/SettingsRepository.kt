@@ -41,9 +41,6 @@ class SettingsRepository private constructor(context: Context) {
     }
 
     private fun loadSettings(deviceId: String): CloudSettings {
-        val savedUrl = prefs.getString(KEY_SERVER_URL, null)
-        val serverUrl = if (savedUrl != null) savedUrl else BuildConfig.DEFAULT_SERVER_URL
-
         val savedCode = prefs.getString(KEY_GROUP_CODE, null)
         val groupCode = if (savedCode != null) savedCode else BuildConfig.DEFAULT_GROUP_CODE
 
@@ -53,7 +50,7 @@ class SettingsRepository private constructor(context: Context) {
         val broadcastEnabled = prefs.getBoolean(KEY_BROADCAST_ENABLED, true)
 
         return CloudSettings(
-            serverUrl = serverUrl,
+            serverUrl = CloudSettings.SERVER_URL,
             groupCode = groupCode,
             deviceName = deviceName,
             deviceId = deviceId,
@@ -63,25 +60,23 @@ class SettingsRepository private constructor(context: Context) {
 
     @Synchronized
     fun save(
-        serverUrl: String,
         groupCode: String,
         deviceName: String,
         broadcastEnabled: Boolean
     ): CloudSettings {
         val normalizedName = deviceName.trim().ifBlank { defaultDeviceName(appContext) }.take(64)
-        val trimmedUrl = serverUrl.trim()
         val trimmedCode = groupCode.trim()
         val deviceId = _settings.value.deviceId
 
         prefs.edit()
-            .putString(KEY_SERVER_URL, trimmedUrl)
+            .remove(KEY_SERVER_URL)
             .putString(KEY_GROUP_CODE, trimmedCode)
             .putString(KEY_DEVICE_NAME, normalizedName)
             .putBoolean(KEY_BROADCAST_ENABLED, broadcastEnabled)
             .apply()
 
         val updated = CloudSettings(
-            serverUrl = trimmedUrl,
+            serverUrl = CloudSettings.SERVER_URL,
             groupCode = trimmedCode,
             deviceName = normalizedName,
             deviceId = deviceId,

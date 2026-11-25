@@ -1,5 +1,5 @@
 import type { CloudSettings, DevicesResponse } from "../types";
-import { normalizeServerUrl } from "./settingsStorage";
+import { DEFAULT_SERVER_URL, normalizeServerUrl } from "./settingsStorage";
 import type { Translations } from "../i18n";
 
 async function parseErrorMessage(res: Response, fallback: string): Promise<string> {
@@ -14,11 +14,8 @@ async function parseErrorMessage(res: Response, fallback: string): Promise<strin
   return `${fallback} (HTTP ${res.status})`;
 }
 
-export async function checkHealth(serverUrl: string, t: Translations): Promise<number> {
-  const baseUrl = normalizeServerUrl(serverUrl);
-  if (!baseUrl) {
-    throw new Error(t.errorEnterServerUrl);
-  }
+export async function checkHealth(t: Translations): Promise<number> {
+  const baseUrl = normalizeServerUrl(DEFAULT_SERVER_URL);
   const start = performance.now();
   const res = await fetch(`${baseUrl}/api/health`, {
     method: "GET",

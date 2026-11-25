@@ -11,7 +11,7 @@ NetCheck contains **no ads, no analytics SDKs, and no third-party tracking**, an
 
 ### 1. Data stored on your device
 NetCheck stores your settings locally in the app's private preferences:
-- Your configured **Cloudflare Worker URL** and **Shared Group Code**
+- Your configured **Shared Group Code**
 - Your customizable **Device Name** (defaults to your device manufacturer and model)
 - A randomly generated **Device ID** (UUID)
 - Whether **Broadcast Online Status** is enabled

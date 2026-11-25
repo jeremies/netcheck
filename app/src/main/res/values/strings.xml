@@ -55,8 +55,8 @@
     <string name="dialog_remove_device_message">¿Eliminar \"%1$s\" de la lista de este grupo? Si sigue monitorizando, volverá a aparecer con su próxima señal de estado.</string>
     <string name="action_remove">Eliminar</string>
     <string name="action_cancel">Cancelar</string>
-    <string name="devices_unconfigured_title">Configurar sincronización con Cloudflare</string>
-    <string name="devices_unconfigured_desc">Introduce la URL de tu Worker de Cloudflare y un código de grupo compartido (mínimo %1$d caracteres) en Ajustes para enviar y ver los dispositivos en línea.</string>
+    <string name="devices_unconfigured_title">Configurar sincronización</string>
+    <string name="devices_unconfigured_desc">Introduce un código de grupo compartido (mínimo %1$d caracteres) en Ajustes para enviar y ver los dispositivos en línea.</string>
     <string name="btn_open_settings">Abrir ajustes</string>
     <string name="devices_summary_counts">%1$d en línea · %2$d sin conexión</string>
     <string name="devices_summary_updated">Actualizado %1$s · actualización automática cada 10 s</string>
@@ -72,12 +72,10 @@
     <string name="relative_time_hours_ago">Hace %1$d h</string>
     <string name="relative_time_days_ago">Hace %1$d d</string>
 
-    <string name="settings_title">Ajustes de Cloudflare</string>
+    <string name="settings_title">Ajustes de sincronización</string>
     <string name="cd_back">Volver</string>
     <string name="settings_broadcast_title">Compartir estado en línea</string>
     <string name="settings_broadcast_desc">Envía señales de estado solo por Wi-Fi cada 15 s mientras la monitorización está activa.</string>
-    <string name="settings_server_url_label">URL del Worker de Cloudflare</string>
-    <string name="settings_server_url_placeholder">https://netcheck-server.&lt;subdominio&gt;.workers.dev</string>
     <string name="btn_test_connection">Probar conexión</string>
     <string name="settings_test_connected">Conectado (%1$d ms)</string>
     <string name="settings_test_failed">Error de conexión</string>
@@ -109,8 +107,7 @@
     <string name="notif_action_stop">Detener</string>
 
     <string name="error_sync_failed">Error de sincronización</string>
-    <string name="error_server_url_not_configured">La URL del servidor no está configurada</string>
-    <string name="error_enter_server_url">Introduce una URL de servidor</string>
+    <string name="error_server_url_not_configured">El servicio de sincronización no está configurado</string>
     <string name="error_unexpected_health_response">Respuesta inesperada del estado del servidor</string>
     <string name="fallback_unknown_device">Dispositivo desconocido</string>
     <string name="default_device_name">Dispositivo Android</string>

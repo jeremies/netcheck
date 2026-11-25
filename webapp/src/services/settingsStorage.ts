@@ -1,8 +1,14 @@
-import { MIN_GROUP_CODE_LENGTH, type CloudSettings, type Locale } from "../types";
+import {
+  MAX_GROUP_CODE_LENGTH,
+  MIN_GROUP_CODE_LENGTH,
+  type CloudSettings,
+  type Locale
+} from "../types";
 import { detectDefaultLocale } from "../i18n";
 
 const STORAGE_KEY = "netcheck_cloud_settings_v1";
 const LOCALE_KEY = "netcheck_locale_v1";
+const GROUP_QUERY_PARAMS = ["group", "groupCode", "code"] as const;
 export const DEFAULT_SERVER_URL = "https://netcheck-server.jmonserrat-54c.workers.dev";
 
 function generateUuid(): string {
@@ -42,17 +48,70 @@ export function isSettingsConfigured(settings: CloudSettings): boolean {
   );
 }
 
+export function readGroupCodeFromQuery(): string | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const params = new URLSearchParams(window.location.search);
+    for (const key of GROUP_QUERY_PARAMS) {
+      const value = params.get(key);
+      if (value !== null) {
+        const trimmed = value.trim();
+        if (
+          trimmed.length >= MIN_GROUP_CODE_LENGTH &&
+          trimmed.length <= MAX_GROUP_CODE_LENGTH
+        ) {
+          return trimmed;
+        }
+        return null;
+      }
+    }
+  } catch {
+    // Ignore malformed query string
+  }
+  return null;
+}
+
+export function stripGroupQueryParamsFromUrl(): void {
+  if (typeof window === "undefined") return;
+  try {
+    const url = new URL(window.location.href);
+    let changed = false;
+    for (const key of GROUP_QUERY_PARAMS) {
+      if (url.searchParams.has(key)) {
+        url.searchParams.delete(key);
+        changed = true;
+      }
+    }
+    if (changed) {
+      const nextSearch = url.searchParams.toString();
+      const cleanedUrl = `${url.pathname}${nextSearch ? `?${nextSearch}` : ""}${url.hash}`;
+      window.history.replaceState(null, "", cleanedUrl);
+    }
+  } catch {
+    // Ignore URL/history errors
+  }
+}
+
+export function buildShareLink(groupCode: string): string {
+  if (typeof window === "undefined") return "";
+  const url = new URL(window.location.href);
+  url.search = "";
+  url.hash = "";
+  url.searchParams.set("group", groupCode.trim());
+  return url.toString();
+}
+
 export function loadSettings(): CloudSettings {
+  const queryGroupCode = readGroupCodeFromQuery();
+
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) {
       const parsed = JSON.parse(raw) as Partial<CloudSettings>;
+      const savedGroupCode = typeof parsed.groupCode === "string" ? parsed.groupCode.trim() : "";
       const settings: CloudSettings = {
-        serverUrl:
-          typeof parsed.serverUrl === "string" && parsed.serverUrl.trim()
-            ? parsed.serverUrl
-            : DEFAULT_SERVER_URL,
-        groupCode: typeof parsed.groupCode === "string" ? parsed.groupCode : "",
+        serverUrl: DEFAULT_SERVER_URL,
+        groupCode: queryGroupCode ?? savedGroupCode,
         deviceName:
           typeof parsed.deviceName === "string" && parsed.deviceName.trim()
             ? parsed.deviceName
@@ -73,7 +132,7 @@ export function loadSettings(): CloudSettings {
 
   const initial: CloudSettings = {
     serverUrl: DEFAULT_SERVER_URL,
-    groupCode: "",
+    groupCode: queryGroupCode ?? "",
     deviceName: defaultDeviceName(),
     deviceId: generateUuid(),
     broadcastEnabled: true
@@ -89,7 +148,7 @@ export function loadSettings(): CloudSettings {
 export function saveSettings(settings: CloudSettings): CloudSettings {
   const normalized: CloudSettings = {
     ...settings,
-    serverUrl: normalizeServerUrl(settings.serverUrl) || DEFAULT_SERVER_URL,
+    serverUrl: DEFAULT_SERVER_URL,
     groupCode: settings.groupCode.trim(),
     deviceName: settings.deviceName.trim() || defaultDeviceName()
   };

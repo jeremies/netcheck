@@ -395,6 +395,26 @@ body,
   color: var(--text-muted);
 }
 
+.audio-unlock-banner {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(239, 108, 0, 0.35);
+  background: var(--status-muted-bg);
+  color: var(--status-muted);
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: filter 0.15s ease;
+}
+
+.audio-unlock-banner:hover {
+  filter: brightness(0.97);
+}
+
 /* Buttons */
 .monitor-actions {
   width: 100%;
@@ -967,6 +987,12 @@ body,
   font-size: 0.78rem;
   color: var(--status-alarm);
   font-weight: 500;
+}
+
+.settings-sync-group {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
 
 .settings-footer {

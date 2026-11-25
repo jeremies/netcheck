@@ -1,7 +1,7 @@
 package com.netcheck.app.model
 
 data class CloudSettings(
-    val serverUrl: String = "",
+    val serverUrl: String = SERVER_URL,
     val groupCode: String = "",
     val deviceName: String = "",
     val deviceId: String = "",
@@ -17,7 +17,9 @@ data class CloudSettings(
         get() = normalizedServerUrl.isNotBlank() && trimmedGroupCode.length >= MIN_GROUP_CODE_LENGTH
 
     companion object {
+        const val SERVER_URL = "https://netcheck-server.jmonserrat-54c.workers.dev"
         const val MIN_GROUP_CODE_LENGTH = 6
+        const val MAX_GROUP_CODE_LENGTH = 128
 
         fun normalizeUrl(raw: String): String {
             val trimmed = raw.trim().trimEnd('/')
