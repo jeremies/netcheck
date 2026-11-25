@@ -8,9 +8,14 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Devices
 import androidx.compose.material.icons.filled.Refresh
@@ -40,6 +45,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.core.content.ContextCompat
@@ -73,6 +79,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        enableEdgeToEdge()
 
         if (savedInstanceState == null) {
             val initialCode = SettingsRepository.extractGroupCodeFromUri(intent?.data)
@@ -112,6 +119,7 @@ fun NetCheckApp(
     onConsumePendingGroupLink: () -> Unit = {}
 ) {
     val context = LocalContext.current
+    val resources = LocalResources.current
     val probeState by WifiMonitorService.probeState.collectAsState()
     val settingsRepository = remember { SettingsRepository.getInstance(context) }
     val settings by settingsRepository.settings.collectAsState()
@@ -148,7 +156,7 @@ fun NetCheckApp(
                 onFailure = { error ->
                     devicesState = devicesState.copy(
                         isLoading = false,
-                        errorMessage = error.message ?: context.getString(R.string.error_load_devices)
+                        errorMessage = error.message ?: resources.getString(R.string.error_load_devices)
                     )
                 }
             )
@@ -170,7 +178,7 @@ fun NetCheckApp(
                 },
                 onFailure = { error ->
                     devicesState = devicesState.copy(
-                        errorMessage = error.message ?: context.getString(R.string.error_remove_device)
+                        errorMessage = error.message ?: resources.getString(R.string.error_remove_device)
                     )
                 }
             )
@@ -217,7 +225,7 @@ fun NetCheckApp(
         onConsumePendingGroupLink()
         if (settingsRepository.applyGroupCode(linkEvent.groupCode)) {
             showSettings = false
-            snackbarHostState.showSnackbar(context.getString(R.string.msg_group_code_updated))
+            snackbarHostState.showSnackbar(resources.getString(R.string.msg_group_code_updated))
         }
     }
 
@@ -228,7 +236,7 @@ fun NetCheckApp(
             if (referrerCode != null && !appliedAppLinkInSession) {
                 if (settingsRepository.applyGroupCode(referrerCode)) {
                     showSettings = false
-                    snackbarHostState.showSnackbar(context.getString(R.string.msg_group_code_updated))
+                    snackbarHostState.showSnackbar(resources.getString(R.string.msg_group_code_updated))
                 }
             }
         }
@@ -272,9 +280,13 @@ fun NetCheckApp(
     Scaffold(
         modifier = Modifier.fillMaxSize(),
         containerColor = MaterialTheme.colorScheme.background,
+        contentWindowInsets = WindowInsets.safeDrawing,
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
         topBar = {
             TopAppBar(
+                windowInsets = WindowInsets.safeDrawing.only(
+                    WindowInsetsSides.Horizontal + WindowInsetsSides.Top
+                ),
                 title = {
                     Text(
                         text = stringResource(
@@ -307,7 +319,11 @@ fun NetCheckApp(
             )
         },
         bottomBar = {
-            NavigationBar {
+            NavigationBar(
+                windowInsets = WindowInsets.safeDrawing.only(
+                    WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom
+                )
+            ) {
                 NavigationBarItem(
                     selected = selectedTab == MainTab.MONITOR,
                     onClick = { selectedTab = MainTab.MONITOR },

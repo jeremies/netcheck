@@ -82,13 +82,13 @@ npx wrangler deploy                               # Deploy Worker and print *.wo
 ## 🛠️ Tech Stack & Requirements
 
 - **Android App**:
-  - **Language**: Kotlin 1.9.24
+  - **Language**: Kotlin 2.2.10
   - **UI**: Jetpack Compose + Material 3
   - **Min SDK**: API 26 (Android 8.0 Oreo)
-  - **Target SDK**: API 34 (Android 14)
+  - **Target SDK**: API 36 (Android 16)
   - **Concurrency**: Kotlin Coroutines & `StateFlow`
   - **Networking**: Standard `HttpURLConnection` + `org.json` (no extra HTTP/WebSocket dependencies)
-  - **Build System**: Gradle 8.7 + Kotlin DSL
+  - **Build System**: Gradle 8.13 + Kotlin DSL
 - **Cloudflare Backend**:
   - Cloudflare Workers (`nodejs_compat`, Workers Logs & Traces enabled)
   - Cloudflare D1 (SQLite)
@@ -99,9 +99,9 @@ npx wrangler deploy                               # Deploy Worker and print *.wo
 ## 🚀 Building & Running Android App
 
 ### Requirements
-- Android Studio Hedgehog / Iguana / Jellyfish (or higher)
-- JDK 17
-- Android SDK with Platform 34
+- Android Studio Meerkat / Narwhal / Otter (or higher)
+- JDK 17 (or 21)
+- Android SDK with Platform 36
 
 ### Optional Pre-configured Default (`local.properties`)
 You can prefill the default Group Code baked into `BuildConfig` at build time by adding this gitignored property to `local.properties`:

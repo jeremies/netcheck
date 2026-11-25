@@ -1,11 +1,10 @@
 [versions]
-agp = "8.4.1"
-kotlin = "1.9.24"
-coreKtx = "1.13.1"
-lifecycleRuntimeKtx = "2.8.0"
-activityCompose = "1.9.0"
-composeBom = "2024.05.00"
-materialIconsExtended = "1.6.7"
+agp = "8.13.0"
+kotlin = "2.2.10"
+coreKtx = "1.17.0"
+lifecycleRuntimeKtx = "2.10.0"
+activityCompose = "1.11.0"
+composeBom = "2025.12.00"
 installreferrer = "2.2"
 
 [libraries]
@@ -19,9 +18,10 @@ androidx-ui-graphics = { group = "androidx.compose.ui", name = "ui-graphics" }
 androidx-ui-tooling = { group = "androidx.compose.ui", name = "ui-tooling" }
 androidx-ui-tooling-preview = { group = "androidx.compose.ui", name = "ui-tooling-preview" }
 androidx-material3 = { group = "androidx.compose.material3", name = "material3" }
-androidx-material-icons-extended = { group = "androidx.compose.material", name = "material-icons-extended", version.ref = "materialIconsExtended" }
+androidx-material-icons-extended = { group = "androidx.compose.material", name = "material-icons-extended" }
 android-installreferrer = { group = "com.android.installreferrer", name = "installreferrer", version.ref = "installreferrer" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
 kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
+kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }

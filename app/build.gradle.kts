@@ -1,8 +1,10 @@
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import java.util.Properties
 
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
+    alias(libs.plugins.kotlin.compose)
 }
 
 val localProperties = Properties()
@@ -21,14 +23,14 @@ val defaultGroupCode = escapeBuildConfigString(
 
 android {
     namespace = "com.netcheck.app"
-    compileSdk = 34
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "com.monserrat.netcheck"
         minSdk = 26
-        targetSdk = 34
-        versionCode = 2
-        versionName = "1.1.0"
+        targetSdk = 36
+        versionCode = 3
+        versionName = "1.1.1"
 
         buildConfigField("String", "DEFAULT_GROUP_CODE", "\"$defaultGroupCode\"")
 
@@ -51,20 +53,20 @@ android {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
-    kotlinOptions {
-        jvmTarget = "17"
-    }
     buildFeatures {
         buildConfig = true
         compose = true
-    }
-    composeOptions {
-        kotlinCompilerExtensionVersion = "1.5.14"
     }
     packaging {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
         }
+    }
+}
+
+kotlin {
+    compilerOptions {
+        jvmTarget.set(JvmTarget.JVM_17)
     }
 }
 

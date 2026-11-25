@@ -1,18 +1,27 @@
 package com.netcheck.app.ui
 
+import android.content.ClipData
 import android.content.Intent
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.consumeWindowInsets
+import androidx.compose.foundation.layout.displayCutout
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.systemBars
+import androidx.compose.foundation.layout.union
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -48,10 +57,11 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.platform.ClipEntry
+import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
@@ -64,7 +74,7 @@ import com.netcheck.app.ui.theme.StatusAlarm
 import com.netcheck.app.ui.theme.StatusOnline
 import kotlinx.coroutines.launch
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
     initialSettings: CloudSettings,
@@ -89,16 +99,21 @@ fun SettingsScreen(
     var copiedNotice by remember { mutableStateOf(false) }
 
     val context = LocalContext.current
+    val resources = LocalResources.current
     val coroutineScope = rememberCoroutineScope()
-    val clipboardManager = LocalClipboardManager.current
+    val clipboard = LocalClipboard.current
 
     val trimmedCode = groupCode.trim()
     val isGroupCodeValid = trimmedCode.isEmpty() || trimmedCode.length >= CloudSettings.MIN_GROUP_CODE_LENGTH
     val canShareLink = trimmedCode.length >= CloudSettings.MIN_GROUP_CODE_LENGTH
 
     Scaffold(
+        contentWindowInsets = WindowInsets.systemBars.union(WindowInsets.displayCutout),
         topBar = {
             TopAppBar(
+                windowInsets = WindowInsets.safeDrawing.only(
+                    WindowInsetsSides.Horizontal + WindowInsetsSides.Top
+                ),
                 title = { Text(stringResource(R.string.settings_title)) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
@@ -115,6 +130,8 @@ fun SettingsScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
+                .consumeWindowInsets(innerPadding)
+                .imePadding()
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = 20.dp, vertical = 12.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
@@ -171,11 +188,11 @@ fun SettingsScreen(
                                 result.fold(
                                     onSuccess = { ms ->
                                         testSucceeded = true
-                                        testMessage = context.getString(R.string.settings_test_connected, ms)
+                                        testMessage = resources.getString(R.string.settings_test_connected, ms)
                                     },
                                     onFailure = { err ->
                                         testSucceeded = false
-                                        testMessage = err.message ?: context.getString(R.string.settings_test_failed)
+                                        testMessage = err.message ?: resources.getString(R.string.settings_test_failed)
                                     }
                                 )
                             }
@@ -290,8 +307,13 @@ fun SettingsScreen(
                     OutlinedButton(
                         enabled = groupCode.isNotBlank(),
                         onClick = {
-                            clipboardManager.setText(AnnotatedString(groupCode.trim()))
-                            copiedNotice = true
+                            val codeToCopy = groupCode.trim()
+                            coroutineScope.launch {
+                                clipboard.setClipEntry(
+                                    ClipEntry(ClipData.newPlainText("Group Code", codeToCopy))
+                                )
+                                copiedNotice = true
+                            }
                         }
                     ) {
                         Icon(
@@ -314,7 +336,7 @@ fun SettingsScreen(
                             context.startActivity(
                                 Intent.createChooser(
                                     shareIntent,
-                                    context.getString(R.string.share_group_link_chooser)
+                                    resources.getString(R.string.share_group_link_chooser)
                                 )
                             )
                         }
