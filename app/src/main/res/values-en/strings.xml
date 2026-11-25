@@ -87,6 +87,9 @@
     <string name="btn_generate_code">Generate Code</string>
     <string name="btn_copied">Copied</string>
     <string name="btn_copy">Copy</string>
+    <string name="btn_share_link">Share Link</string>
+    <string name="share_group_link_chooser">Share NetCheck group link</string>
+    <string name="msg_group_code_updated">Group code updated from link</string>
     <string name="settings_device_name_label">Device Name</string>
     <string name="settings_device_id">Device ID: %1$s</string>
     <string name="btn_save_settings">Save Settings</string>

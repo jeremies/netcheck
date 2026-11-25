@@ -27,8 +27,8 @@ android {
         applicationId = "com.monserrat.netcheck"
         minSdk = 26
         targetSdk = 34
-        versionCode = 1
-        versionName = "1.0.0"
+        versionCode = 2
+        versionName = "1.1.0"
 
         buildConfigField("String", "DEFAULT_GROUP_CODE", "\"$defaultGroupCode\"")
 
@@ -79,6 +79,7 @@ dependencies {
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
     implementation(libs.androidx.material.icons.extended)
+    implementation(libs.android.installreferrer)
 
     debugImplementation(libs.androidx.ui.tooling)
 }

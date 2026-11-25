@@ -1,6 +1,7 @@
 package com.netcheck.app
 
 import android.Manifest
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
@@ -24,6 +25,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
@@ -40,6 +43,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.core.content.ContextCompat
+import com.netcheck.app.data.InstallReferrerHelper
 import com.netcheck.app.data.SettingsRepository
 import com.netcheck.app.service.CloudflareClient
 import com.netcheck.app.service.WifiMonitorService
@@ -56,33 +60,70 @@ private enum class MainTab {
     DEVICES
 }
 
+data class PendingGroupLink(
+    val id: Long,
+    val groupCode: String
+)
+
 class MainActivity : ComponentActivity() {
+
+    private var nextLinkEventId = 0L
+    private var pendingGroupLink by mutableStateOf<PendingGroupLink?>(null)
+    private var hadAppLinkOnLaunch by mutableStateOf(false)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
+        if (savedInstanceState == null) {
+            val initialCode = SettingsRepository.extractGroupCodeFromUri(intent?.data)
+            if (initialCode != null) {
+                hadAppLinkOnLaunch = true
+                pendingGroupLink = PendingGroupLink(++nextLinkEventId, initialCode)
+            }
+        }
+
         setContent {
             NetCheckTheme {
-                NetCheckApp()
+                NetCheckApp(
+                    pendingGroupLink = pendingGroupLink,
+                    hadAppLinkOnLaunch = hadAppLinkOnLaunch,
+                    onConsumePendingGroupLink = { pendingGroupLink = null }
+                )
             }
+        }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        val code = SettingsRepository.extractGroupCodeFromUri(intent.data)
+        if (code != null) {
+            hadAppLinkOnLaunch = true
+            pendingGroupLink = PendingGroupLink(++nextLinkEventId, code)
         }
     }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun NetCheckApp() {
+fun NetCheckApp(
+    pendingGroupLink: PendingGroupLink? = null,
+    hadAppLinkOnLaunch: Boolean = false,
+    onConsumePendingGroupLink: () -> Unit = {}
+) {
     val context = LocalContext.current
     val probeState by WifiMonitorService.probeState.collectAsState()
     val settingsRepository = remember { SettingsRepository.getInstance(context) }
     val settings by settingsRepository.settings.collectAsState()
     val cloudflareClient = remember(context) { CloudflareClient(context) }
     val coroutineScope = rememberCoroutineScope()
+    val snackbarHostState = remember { SnackbarHostState() }
 
     var selectedTab by remember { mutableStateOf(MainTab.MONITOR) }
     var showSettings by remember { mutableStateOf(false) }
     var devicesState by remember { mutableStateOf(DevicesUiState()) }
     var refreshJob by remember { mutableStateOf<Job?>(null) }
+    var appliedAppLinkInSession by rememberSaveable { mutableStateOf(hadAppLinkOnLaunch) }
 
     fun refreshDevices() {
         val currentSettings = settingsRepository.settings.value
@@ -169,6 +210,30 @@ fun NetCheckApp() {
         }
     }
 
+    // Apply incoming App Link group code (cold start or singleTop onNewIntent)
+    LaunchedEffect(pendingGroupLink?.id) {
+        val linkEvent = pendingGroupLink ?: return@LaunchedEffect
+        appliedAppLinkInSession = true
+        onConsumePendingGroupLink()
+        if (settingsRepository.applyGroupCode(linkEvent.groupCode)) {
+            showSettings = false
+            snackbarHostState.showSnackbar(context.getString(R.string.msg_group_code_updated))
+        }
+    }
+
+    // Read Google Play Install Referrer once on first launch if no App Link already supplied a code
+    LaunchedEffect(Unit) {
+        if (!settingsRepository.isInstallReferrerChecked() && !appliedAppLinkInSession) {
+            val referrerCode = InstallReferrerHelper.fetchGroupCode(context, settingsRepository)
+            if (referrerCode != null && !appliedAppLinkInSession) {
+                if (settingsRepository.applyGroupCode(referrerCode)) {
+                    showSettings = false
+                    snackbarHostState.showSnackbar(context.getString(R.string.msg_group_code_updated))
+                }
+            }
+        }
+    }
+
     // Start monitoring automatically once per app launch
     LaunchedEffect(Unit) {
         if (!hasAttemptedAutoStart) {
@@ -207,6 +272,7 @@ fun NetCheckApp() {
     Scaffold(
         modifier = Modifier.fillMaxSize(),
         containerColor = MaterialTheme.colorScheme.background,
+        snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
         topBar = {
             TopAppBar(
                 title = {

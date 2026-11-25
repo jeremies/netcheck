@@ -1,8 +1,11 @@
 package com.netcheck.app.ui
 
+import android.content.Intent
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -20,6 +23,7 @@ import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.ErrorOutline
 import androidx.compose.material.icons.filled.Key
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.Button
@@ -60,7 +64,7 @@ import com.netcheck.app.ui.theme.StatusAlarm
 import com.netcheck.app.ui.theme.StatusOnline
 import kotlinx.coroutines.launch
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun SettingsScreen(
     initialSettings: CloudSettings,
@@ -90,6 +94,7 @@ fun SettingsScreen(
 
     val trimmedCode = groupCode.trim()
     val isGroupCodeValid = trimmedCode.isEmpty() || trimmedCode.length >= CloudSettings.MIN_GROUP_CODE_LENGTH
+    val canShareLink = trimmedCode.length >= CloudSettings.MIN_GROUP_CODE_LENGTH
 
     Scaffold(
         topBar = {
@@ -262,9 +267,9 @@ fun SettingsScreen(
                     modifier = Modifier.fillMaxWidth()
                 )
 
-                Row(
+                FlowRow(
                     horizontalArrangement = Arrangement.spacedBy(10.dp),
-                    verticalAlignment = Alignment.CenterVertically
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     OutlinedButton(
                         onClick = {
@@ -296,6 +301,31 @@ fun SettingsScreen(
                         )
                         Spacer(modifier = Modifier.width(6.dp))
                         Text(stringResource(if (copiedNotice) R.string.btn_copied else R.string.btn_copy))
+                    }
+
+                    OutlinedButton(
+                        enabled = canShareLink,
+                        onClick = {
+                            val shareUrl = SettingsRepository.buildShareLink(trimmedCode)
+                            val shareIntent = Intent(Intent.ACTION_SEND).apply {
+                                type = "text/plain"
+                                putExtra(Intent.EXTRA_TEXT, shareUrl)
+                            }
+                            context.startActivity(
+                                Intent.createChooser(
+                                    shareIntent,
+                                    context.getString(R.string.share_group_link_chooser)
+                                )
+                            )
+                        }
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.Share,
+                            contentDescription = null,
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(stringResource(R.string.btn_share_link))
                     }
                 }
             }

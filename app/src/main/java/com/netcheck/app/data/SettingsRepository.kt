@@ -1,8 +1,9 @@
 package com.netcheck.app.data
 
 import android.content.Context
-import android.content.SharedPreferences
+import android.net.Uri
 import android.os.Build
+import android.content.SharedPreferences
 import com.netcheck.app.BuildConfig
 import com.netcheck.app.R
 import com.netcheck.app.model.CloudSettings
@@ -58,6 +59,34 @@ class SettingsRepository private constructor(context: Context) {
         )
     }
 
+    fun isInstallReferrerChecked(): Boolean {
+        return prefs.getBoolean(KEY_INSTALL_REFERRER_CHECKED, false)
+    }
+
+    fun markInstallReferrerChecked() {
+        prefs.edit().putBoolean(KEY_INSTALL_REFERRER_CHECKED, true).apply()
+    }
+
+    @Synchronized
+    fun applyGroupCode(rawGroupCode: String): Boolean {
+        val trimmedCode = rawGroupCode.trim()
+        if (trimmedCode.length !in CloudSettings.MIN_GROUP_CODE_LENGTH..CloudSettings.MAX_GROUP_CODE_LENGTH) {
+            return false
+        }
+
+        val current = _settings.value
+        prefs.edit()
+            .remove(KEY_SERVER_URL)
+            .putString(KEY_GROUP_CODE, trimmedCode)
+            .apply()
+
+        _settings.value = current.copy(
+            serverUrl = CloudSettings.SERVER_URL,
+            groupCode = trimmedCode
+        )
+        return true
+    }
+
     @Synchronized
     fun save(
         groupCode: String,
@@ -93,7 +122,9 @@ class SettingsRepository private constructor(context: Context) {
         private const val KEY_DEVICE_NAME = "device_name"
         private const val KEY_DEVICE_ID = "device_id"
         private const val KEY_BROADCAST_ENABLED = "broadcast_enabled"
+        private const val KEY_INSTALL_REFERRER_CHECKED = "install_referrer_checked"
 
+        private val GROUP_QUERY_PARAMS = listOf("group", "groupCode", "code")
         private const val CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
         private val secureRandom = SecureRandom()
 
@@ -104,6 +135,46 @@ class SettingsRepository private constructor(context: Context) {
             return instance ?: synchronized(this) {
                 instance ?: SettingsRepository(context).also { instance = it }
             }
+        }
+
+        fun extractGroupCodeFromUri(uri: Uri?): String? {
+            if (uri == null || uri.isOpaque) return null
+            for (key in GROUP_QUERY_PARAMS) {
+                val rawValue = uri.getQueryParameter(key)
+                if (rawValue != null) {
+                    val trimmed = rawValue.trim()
+                    return if (
+                        trimmed.length in CloudSettings.MIN_GROUP_CODE_LENGTH..CloudSettings.MAX_GROUP_CODE_LENGTH
+                    ) {
+                        trimmed
+                    } else {
+                        null
+                    }
+                }
+            }
+            return null
+        }
+
+        fun extractGroupCodeFromReferrer(rawReferrer: String?): String? {
+            val trimmed = rawReferrer?.trim().orEmpty()
+            if (trimmed.isEmpty()) return null
+
+            val directUri = Uri.Builder().encodedQuery(trimmed).build()
+            extractGroupCodeFromUri(directUri)?.let { return it }
+
+            if (trimmed.contains("%3D", ignoreCase = true)) {
+                val decodedUri = Uri.Builder().encodedQuery(Uri.decode(trimmed)).build()
+                return extractGroupCodeFromUri(decodedUri)
+            }
+            return null
+        }
+
+        fun buildShareLink(groupCode: String): String {
+            return Uri.parse("${CloudSettings.SHARE_BASE_URL}/")
+                .buildUpon()
+                .appendQueryParameter("group", groupCode.trim())
+                .build()
+                .toString()
         }
 
         fun defaultDeviceName(context: Context): String {

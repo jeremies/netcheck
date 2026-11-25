@@ -18,6 +18,7 @@ data class CloudSettings(
 
     companion object {
         const val SERVER_URL = "https://netcheck-server.jmonserrat-54c.workers.dev"
+        const val SHARE_BASE_URL = "https://jmc-netcheck.netlify.app"
         const val MIN_GROUP_CODE_LENGTH = 6
         const val MAX_GROUP_CODE_LENGTH = 128
 

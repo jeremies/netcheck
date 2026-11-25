@@ -88,6 +88,9 @@
     <string name="btn_generate_code">Generar código</string>
     <string name="btn_copied">Copiado</string>
     <string name="btn_copy">Copiar</string>
+    <string name="btn_share_link">Compartir enlace</string>
+    <string name="share_group_link_chooser">Compartir enlace de grupo de NetCheck</string>
+    <string name="msg_group_code_updated">Código de grupo actualizado desde el enlace</string>
     <string name="settings_device_name_label">Nombre del dispositivo</string>
     <string name="settings_device_id">ID del dispositivo: %1$s</string>
     <string name="btn_save_settings">Guardar ajustes</string>

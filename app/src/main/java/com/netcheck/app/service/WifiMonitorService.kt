@@ -218,6 +218,7 @@ class WifiMonitorService : Service() {
             var lastSyncError: String? = null
             var wasOnlinePreviously = false
             var wasBroadcastReadyPreviously = false
+            var lastBroadcastGroupCode: String? = null
 
             while (isActive) {
                 val result = prober.probeWifiInternet()
@@ -239,6 +240,7 @@ class WifiMonitorService : Service() {
                         val nowElapsed = SystemClock.elapsedRealtime()
                         val shouldSend = !wasOnlinePreviously ||
                             !wasBroadcastReadyPreviously ||
+                            lastBroadcastGroupCode != settings.trimmedGroupCode ||
                             (nowElapsed - lastHeartbeatElapsedMs >= HEARTBEAT_INTERVAL_MS)
                         if (shouldSend) {
                             val wifiNetwork = prober.getActiveWifiNetwork()
@@ -258,6 +260,7 @@ class WifiMonitorService : Service() {
                                     onSuccess = { serverTime ->
                                         lastSyncTimestamp = serverTime
                                         lastSyncError = null
+                                        lastBroadcastGroupCode = settings.trimmedGroupCode
                                     },
                                     onFailure = { err ->
                                         // Server/sync errors must never trigger the Wi-Fi loss alarm
@@ -270,6 +273,7 @@ class WifiMonitorService : Service() {
                         wasBroadcastReadyPreviously = true
                     } else {
                         wasBroadcastReadyPreviously = false
+                        lastBroadcastGroupCode = null
                         lastSyncError = null
                     }
                     wasOnlinePreviously = true

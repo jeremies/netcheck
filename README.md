@@ -41,7 +41,7 @@ When configured in **Settings**, NetCheck also reports your device's Wi-Fi avail
   - **Devices** (with live online count badge): Auto-refreshes every **10 seconds** while open, listing Online devices first followed by Offline devices with last-seen time, Wi-Fi SSID (when available), probe latency, battery % + charging state, and delete confirmation for removing old entries.
 - **Settings (Gear Icon)**:
   - Toggle **Broadcast Online Status** on/off and test sync server connectivity (`Test Connection` checks `/api/health`; the backend Worker URL is preconfigured and hidden from users).
-  - Enter, generate, copy, or show/hide your **Shared Group Code** (in `webapp/`, a group code can also be supplied via `?group=`, `?groupCode=`, or `?code=` query parameter or copied as a share link).
+  - Enter, generate, copy, share (`https://jmc-netcheck.netlify.app/?group=...`), or show/hide your **Shared Group Code** (`webapp/` accepts `?group=`, `?groupCode=`, or `?code=` on desktop, redirects Android browsers to Google Play with `&referrer=group%3D...`, and the Android app accepts App Links + Play Install Referrer).
   - Customize your **Device Name** (defaults to device manufacturer/model) with a persistent generated UUID.
 
 ---
@@ -109,6 +109,9 @@ You can prefill the default Group Code baked into `BuildConfig` at build time by
 netcheck.groupCode=YOUR-GROUP-CODE
 ```
 This value remains editable inside the app's **Settings** screen.
+
+### Android App Links Setup (`webapp/public/.well-known/assetlinks.json`)
+Before deploying `webapp/` to `https://jmc-netcheck.netlify.app`, replace `REPLACE_WITH_GOOGLE_PLAY_APP_SIGNING_SHA256_FINGERPRINT` in `webapp/public/.well-known/assetlinks.json` with your Play App Signing key SHA-256 fingerprint from Google Play Console (`Setup -> App signing`) so Android opens invite links directly in NetCheck when already installed.
 
 ### Building via Terminal
 ```bash

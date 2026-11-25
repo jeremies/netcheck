@@ -10,6 +10,7 @@ const STORAGE_KEY = "netcheck_cloud_settings_v1";
 const LOCALE_KEY = "netcheck_locale_v1";
 const GROUP_QUERY_PARAMS = ["group", "groupCode", "code"] as const;
 export const DEFAULT_SERVER_URL = "https://netcheck-server.jmonserrat-54c.workers.dev";
+export const PLAY_STORE_PACKAGE_ID = "com.monserrat.netcheck";
 
 function generateUuid(): string {
   if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
@@ -99,6 +100,30 @@ export function buildShareLink(groupCode: string): string {
   url.hash = "";
   url.searchParams.set("group", groupCode.trim());
   return url.toString();
+}
+
+export function isAndroidBrowser(): boolean {
+  return typeof navigator !== "undefined" && /Android/i.test(navigator.userAgent);
+}
+
+export function buildPlayStoreInstallUrl(groupCode: string | null): string {
+  const url = new URL("https://play.google.com/store/apps/details");
+  url.searchParams.set("id", PLAY_STORE_PACKAGE_ID);
+  if (groupCode) {
+    const referrerParams = new URLSearchParams();
+    referrerParams.set("group", groupCode);
+    url.searchParams.set("referrer", referrerParams.toString());
+  }
+  return url.toString();
+}
+
+export function redirectAndroidToPlayStore(): boolean {
+  if (typeof window === "undefined" || !isAndroidBrowser()) {
+    return false;
+  }
+  const groupCode = readGroupCodeFromQuery();
+  window.location.replace(buildPlayStoreInstallUrl(groupCode));
+  return true;
 }
 
 export function loadSettings(): CloudSettings {
